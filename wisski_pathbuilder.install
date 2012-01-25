@@ -1,0 +1,160 @@
+<?php
+
+/**
+ * Implementation of hook_install().
+ */
+function wisski_pathbuilder_install() {
+  // Create tables.
+  drupal_install_schema('wisski_pathbuilder');
+  db_query("ALTER TABLE {wisski_template} engine=INNODB");
+
+}
+
+/**
+ * Implementation of hook_uninstall().
+ */
+function wisski_pathbuilder_uninstall() {
+  // Remove tables.
+  drupal_uninstall_schema('wisski_pathbuilder');
+
+}
+
+/**
+ * Implementation of hook_schema().
+ */
+function wisski_pathbuilder_schema() {
+  $schema['wisski_template'] = array(
+    'description' => 'The table that stores the owl-templates for the wisski project.',
+    'fields' => array(
+      'id' => array(
+        'type' => 'serial',
+        'not null' => TRUE,
+
+        'description' => 'The id of the template.',
+      ),
+      
+      'uuid' => array(
+        'type' => 'char',
+        'not null' => TRUE,
+        'length' => 36,
+        'description' => 'The uuid of the template.',
+      ),
+
+      'path_array' => array(
+        'type' => 'text',
+        'size' => 'big',
+
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'The array for the path.',
+      ),
+      
+      'datatype_property' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'The uri of the selected datatype property.',
+      ),
+
+      'short_name' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'The string for the short name displayed in the topic of the node.',
+      ),
+      
+      'disamb' => array(
+        'type' => 'int',
+
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Mode for disambiguation',
+      ),
+
+      'length' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'description' => 'The number of hops in the path, including +1 per concept and property. This is usually not an even number!',
+      ),
+		
+      'name' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'The name of the path of the template.',
+      ),
+      
+      'description' => array(
+        'type' => 'text',
+        'size' => 'big',
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'A long description for the user.',
+      ),
+      
+      'group_id' => array(
+        'type' => 'int',
+        'not null' => FALSE,
+        'description' => 'The parent this item belongs to.',
+      ),
+      
+      'weight' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'description' => 'Weight of the path so the user can change the display.',
+      ),
+      
+      'is_group' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'If it is a group = 1, if it is a path = 0',
+      ),
+
+      'fieldtype' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => 'textfield',
+        'description' => 'What kind of element should be used for display?',
+      ),
+      
+      'enabled' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Enabled = 1, disabled = 0',
+      ),
+      
+      'mandatory' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'mandatory means that this property must be filled if this field has the value "1"',
+      ),
+      
+      'repeatable' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'repeatable means that this property may be filled several times.',
+      ),
+      
+      'type' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 2,
+        'description' => 'type of the path, wisski-interna: 2, import: 3, export: 5',
+      ),
+      
+		),
+    'primary key' => array('id'),
+    'unique keys' => array('uuid' => array('uuid')),
+  );
+
+  return $schema;
+}
+

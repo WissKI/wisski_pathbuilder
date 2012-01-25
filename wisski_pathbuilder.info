@@ -1,0 +1,8 @@
+; $Id: 
+name = WissKI Pathbuilder API
+description = Allows administrators to customize the wisski navigation menu.
+package = WissKI
+version = 1.0
+core = 6.x
+dependencies[] = wisskiReasoner
+

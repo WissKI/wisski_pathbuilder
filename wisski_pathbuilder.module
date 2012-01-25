@@ -1,0 +1,362 @@
+<?php
+
+/**
+ * @file
+ * Allows administrators to customize the site templating menu.
+ */
+
+function wisski_pathbuilder_init() {
+}
+
+/**
+ * Implementation of hook_perm().
+ */
+function wisski_pathbuilder_perm() {
+  return array('wisski access templateView', 'wisski access templateEdit', 'wisski access templateCreate');
+}
+
+
+function wisski_pathbuilder_group_load($menu) {
+  $result = db_query("SELECT * FROM {wisski_template} WHERE `is_group` = 1 AND `enabled` = 1 AND `name` = '$menu'");
+    
+  $arr = db_fetch_array($result);
+      
+  if(!isset($arr['id']))
+    return FALSE;
+  return $arr['id'];
+              
+}
+
+
+/**
+ * Implementation of hook_menu().
+ */
+ 
+function wisski_pathbuilder_menu() {
+
+  $items['wisski_pathbuilder/autocomplete/%'] = array(
+    'title' => 'Autocomplete',
+    'description' => "Desc",
+    'page callback' => 'wisski_pathbuilder_autocomplete',
+    'page arguments' => array(2),
+    'access callback' => 'user_access',
+    'access arguments' => array('wisski access templateCreate'),
+    'file' => 'wisski_pathbuilder.inc',
+    'type' => MENU_CALLBACK,
+  );
+
+  $items['wisski_pathbuilder/duplicate/%'] = array(
+    'title' => 'Autocomplete',
+    'description' => "Desc",
+    'page callback' => 'wisski_pathbuilder_duplicate',
+    'page arguments' => array(2),
+    'access callback' => 'user_access',
+    'access arguments' => array('wisski access templateCreate'),
+    'file' => 'wisski_pathbuilder.inc',
+    'type' => MENU_CALLBACK,
+  );
+
+  $items['node/add/individual/%wisski_pathbuilder_group'] = array(
+    'title' => t("Group"),
+    'description' => t("Desc"),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('wisski_pathbuilder_build_group', 3),
+    'access callback' => 'user_access',
+    'access arguments' => array('wisski access templateCreate'),
+    'type'     => MENU_NORMAL_ITEM,            
+    'file' => 'wisski_pathbuilder.inc',
+  );
+
+  $items['node/%node/tview'] = array(
+    'title'    => t('Template View'),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('wisski_pathbuilder_template_view',1),
+    'access callback' => 'wisski_loader',
+    'access arguments' => array(1, 'wisski access templateView'),
+    'type'     => MENU_LOCAL_TASK,
+    'file' => 'wisski_pathbuilder.inc',
+  );
+
+  $items['node/%node/pathview'] = array(
+    'title'    => t('Paths'),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('wisski_pathbuilder_path_view',1),
+    'access callback' => 'wisski_loader',
+    'access arguments' => array(1, 'wisski administrate page'),
+    'type'     => MENU_LOCAL_TASK,
+    'file' => 'wisski_pathbuilder.inc',
+  );
+  
+  $items['node/%node/tedit'] = array(
+    'title'    => t('Edit'),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('wisski_pathbuilder_template_edit',1),
+    'access callback' => 'wisski_loader',
+    'access arguments' => array(1, 'wisski access templateEdit'),
+    'type'     => MENU_LOCAL_TASK,
+    'file' => 'wisski_pathbuilder.inc',
+  );
+
+  $items['admin/settings/wisski/pathbuilder/add_own_path/%'] = array(
+    'title' => t('Add Path'),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('_wisski_pathbuilder_add_own_path', 5),
+    'access arguments' => array('wisski administrate page'),
+    'type' => MENU_CALLBACK,
+    'file' => 'wisski_pathbuilder.inc',
+  );
+
+  $items['admin/settings/wisski/pathbuilder/get_own_path'] = array(
+    'page callback' => 'wisski_pathbuilder_calculate_path',
+    'access arguments' => array('wisski administrate page'),
+    'type' => MENU_CALLBACK,
+    'file' => 'wisski_pathbuilder.inc',
+  );
+
+  $items['admin/settings/wisski/pathbuilder/%/edit'] = array(
+    'title' => t('Edit menu item'),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('wisski_pathbuilder_edit_item', 'edit', 4, NULL),
+    'access arguments' => array('wisski administrate page'),
+    'type' => MENU_CALLBACK,
+    'file' => 'wisski_pathbuilder.inc',
+  );
+
+  $items['admin/settings/wisski/pathbuilder/%/delete'] = array(
+    'title' => t('Delete menu item'),
+    'page callback' => 'wisski_pathbuilder_delete_item',
+    'page arguments' => array(4),
+    'access arguments' => array('wisski administrate page'),
+    'type' => MENU_CALLBACK,
+    'file' => 'wisski_pathbuilder.inc',
+  );
+
+  $items['admin/settings/wisski/pathbuilder'] = array(
+    'title' => t('Pathbuilder'),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('wisski_pathbuilder_overview_form', 'Pathbuilder'),
+    'access arguments' => array('wisski administrate page'),
+    'type' => MENU_LOCAL_TASK,
+    'file' => 'wisski_pathbuilder.inc',
+    'weight' => 2,
+  );
+  
+  include_once('sites/all/modules/wisski_pathbuilder/wisski_pathbuilder.inc');
+  
+  foreach(wisski_pathbuilder_getPathbuilderTrees() as $key => $elemname) {  
+
+    $items['admin/settings/wisski/pathbuilder/'.$key.'/'] = array(
+      'title' => t($elemname),
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('wisski_pathbuilder_overview_form', 'Pathbuilder', $key),
+      'access arguments' => array('wisski administrate page'),
+      'type' => MENU_LOCAL_TASK,
+      'file' => 'wisski_pathbuilder.inc',
+      'weight' => 2,
+    );
+    if($key == 2)
+      $items['admin/settings/wisski/pathbuilder/'.$key.'/']['type'] = MENU_DEFAULT_LOCAL_TASK;
+  }
+  
+  return $items;
+}
+
+/**
+ * Implemenation of hook_theme().
+ */
+function wisski_pathbuilder_theme() {
+
+  return array(
+    'wisski_pathbuilder_overview_form' => array(
+      'file' => 'wisski_pathbuilder.inc',
+      'arguments' => array('form' => NULL),
+    ),
+  );
+}
+
+/**
+ * Title callback for the menu overview page and links.
+ */ 
+function wisski_pathbuilder_overview_title($menu) {
+  return t($menu);
+}
+
+/**
+ * Implementation of hook_nodeapi().
+ */
+function wisski_pathbuilder_nodeapi(&$node, $op) {
+  if($op == "view") {
+	  if($node->content['body'] != "")
+		  unset($node->content['ARC']);  
+  }
+}
+
+function wisski_pathbuilder_block($op = 'list', $delta = 0, $edit = array()) {
+  if ($op == "list") {
+    // Generate listing of blocks from this module, for the admin/block page
+    $block = array();
+    $block[0]["info"] = t('WissKI templated view');
+    $block[1]["info"] = t('WissKI text view');
+    $block[2]["info"] = t('WissKI image view');
+    return $block;
+                
+  } else if ($op == "view") {
+    if(is_numeric(arg(1)))
+      $node = node_load(arg(1));
+    if(!isset($node))
+      return;
+      
+    if ($delta == 0) {
+      
+      $block['subject'] = t('Templated Content');
+      include_once('sites/all/modules/wisski_pathbuilder/wisski_pathbuilder.inc');
+      $block['content'] =  wisski_pathbuilder_template_view(array(), $node);    
+      return $block;          
+    } else if ($delta == 1) {
+      $block['subject'] = t('Blocked Text');
+
+      $block['content'] = wisski_pathbuilder_getText($node);
+      return $block;
+    } else if ($delta == 2) {
+
+      $block['subject'] = t('Images');
+      include_once('sites/all/modules/wisski_pathbuilder/wisski_pathbuilder.inc');
+      $block['content'] = wisski_pathbuilder_getImages($node);
+      return $block;
+    }
+  }
+}
+
+function wisski_pathbuilder_getText($node) {
+  $indiv = $node->title;
+
+  $namespaces = wisski_store_getObj()->wisski_ARCAdapter_getNamespaces();
+	  $q = "";
+  	foreach ($namespaces as $name => $val) {
+      $q .= "PREFIX $name:\t<$val>\n";
+  	}  
+  	
+  // beware! Dirty!
+  $pred = "ecrm:P129i_is_subject_of";
+  
+  $q .= "SELECT * WHERE { <" . wisski_store_getObj()->wisski_ARCAdapter_delNamespace($indiv) . "> <" 
+    .  wisski_store_getObj()->wisski_ARCAdapter_delNamespace($pred) . "> ?x . }";
+  $rows =  wisski_store_getObj()->wisski_ARCAdapter_getStore()->query($q, 'rows');
+
+  // by Martin: if no text  found, search via Document group path
+  if (!$rows && module_exists('wisski_textproc')) {
+    $text_uris = wisski_textproc_get_texts(wisski_store_getObj()->wisski_ARCAdapter_delNamespace($indiv));
+    $rows = array(array('x' => $text_uris[0]));
+  }
+  // end by Martin
+ 
+  $url = parse_url($rows[0]['x']);
+  global $base_url;
+  $base = $base_url . "/";
+  $search = str_replace($base, "", $rows[0]['x']);
+  $text = drupal_get_normal_path($search);
+  
+  $node2 = node_load(arg(1,$text));
+
+  return $node2->body;
+}
+
+function wisski_pathbuilder_getImages($node) {
+
+  $indiv = $node->title;
+
+  $group = wisski_pathbuilder_getGroupIDForIndividual(wisski_store_getObj()->wisski_ARCAdapter_delNamespace($indiv), TRUE);
+  
+  $allgroups = wisski_pathbuilder_getAllMembers($group, FALSE);
+  
+  $imagegroups = array();
+  
+  foreach($allgroups as $imagegroup) {
+    $data = wisski_pathbuilder_getPathData($imagegroup);
+    if($data['fieldtype'] == "images") {
+      $imagegroups[] = $imagegroup;
+    }
+  }
+  
+  $imagestr = "";
+  
+  foreach($imagegroups as $imagegroup) {
+  
+    $condition = ("FILTER ( ?x0 = <" . wisski_store_getObj()->wisski_ARCAdapter_delNamespace($node->title). "> ) ");
+    $sparql = wisski_pathbuilder_get_sparql($imagegroup, $condition);
+
+    $rows =  wisski_store_getObj()->wisski_ARCAdapter_getStore()->query($sparql, 'rows');
+    foreach($rows as $pic) {
+      $pic = $pic['out'];
+      
+      if(trim($pic) == "")
+        continue;
+
+      $pics = getimagesize($pic);
+      if($pics == 0) {
+        drupal_set_message(t("Warning: no picture found at ") + $pic + ".", "error");
+        continue; 
+      }
+
+      $factorx = variable_get("wisski_pathbuilder_targetImageWidth", 150)/$pics[0];
+
+      $factor = $factorx;
+      $imagestr .= '<a href="javascript:void(0);" title="' . $pic . '" onclick="window.open(\'' .
+                   $pic . '\', \'\', \'height=' . $pics[1] . ',width=' . $pics[0] . '\');">' .
+                   '<img src="' . $pic . '" alt="' . $pic . '"/></a>'; //width="' . round($pics[0]*$factor) . '"></a>';
+                                                            
+    }
+  }
+
+  return $imagestr;
+}
+
+function wisski_pathbuilder_getCoordinates($node) {
+
+  $indiv = $node->title;
+
+  $group = wisski_pathbuilder_getGroupIDForIndividual(wisski_store_getObj()->wisski_ARCAdapter_delNamespace($indiv), TRUE);
+
+  $allgroups = wisski_pathbuilder_getAllMembers($group, FALSE);
+
+  $imagegroups = array();
+  $coordarr = NULL;
+  
+  foreach($allgroups as $imagegroup) {
+    $data = wisski_pathbuilder_getPathData($imagegroup);
+    if($data['fieldtype'] == "coordinates") {
+      $imagegroups[] = $imagegroup;
+    }
+  }
+  
+  $imagestr = "";
+  if(!empty($imagegroups)) {
+    $coordarr = array();
+  }
+  
+  foreach($imagegroups as $imagegroup) {
+
+    $condition = ("FILTER ( ?x0 = <" . wisski_store_getObj()->wisski_ARCAdapter_delNamespace($node->title). "> ) ");
+    $sparql = wisski_pathbuilder_get_sparql($imagegroup, $condition);
+
+    $rows =  wisski_store_getObj()->wisski_ARCAdapter_getStore()->query($sparql, 'rows');
+
+    foreach($rows as $pic) {
+      $pic = $pic['out'];
+      
+      if(trim($pic) == "")
+        continue;
+
+    $coordarr[] = $pic;
+    }
+  }
+
+
+  return $coordarr;
+}
+
+function wisski_pathbuilder_menu_alter(&$items) {
+
+  $items['node/%node/tview']['type'] = MENU_CALLBACK;
+
+}
