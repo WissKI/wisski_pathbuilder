@@ -4,5 +4,5 @@ description = Allows administrators to customize the wisski navigation menu.
 package = WissKI
 version = 1.0
 core = 6.x
-dependencies[] = wisskiReasoner
+dependencies[] = wisski_reasoner
 
