@@ -1362,7 +1362,7 @@ function wisski_pathbuilder_get_sparql($id, $conditions = "", $triplewise = FALS
   if(!$triplewise) {
     $sparql = "";
 
-    if(!variable_get("wisskiReasoner_inverse_reasoning",FALSE) || !$inverse) {
+    if(!variable_get("wisski_reasoner_inverse_reasoning",FALSE) || !$inverse) {
       $sparqlstart = "SELECT ";
     } else {
       $sparqlstart = "SELECT DISTINCT ";
@@ -1426,7 +1426,7 @@ function wisski_pathbuilder_get_sparql($id, $conditions = "", $triplewise = FALS
         $elements[] = "?x$ii";
         $sparqltriples[] = "?x$ii rdf:type <" . $path["x$ii"] . "> ";
         $sparqltriples[] = "{ { ?x$ii <" . $path["y$ii"] . "> ?x" . ($ii + 1) . 
-          " } UNION { ?x" . ($ii + 1) . " <" . wisskiReasoner_getInverse($path["y$ii"]) . 
+          " } UNION { ?x" . ($ii + 1) . " <" . wisski_reasoner_getInverse($path["y$ii"]) . 
           "> ?x$ii } } ";
       }
     }
@@ -2480,7 +2480,7 @@ function _wisski_pathbuilder_add_groups_to_menu() {
 
       foreach($classes as $class) {
 
-        $subp = wisskiReasoner_getPropertiesForConcept(wisski_store_getObj()->wisski_ARCAdapter_delNamespace($class));
+        $subp = wisski_reasoner_getPropertiesForConcept(wisski_store_getObj()->wisski_ARCAdapter_delNamespace($class));
         for($iter = 0; $iter < count($subp); $iter++) {
           $subp[$iter] = wisski_store_getObj()->wisski_ARCAdapter_addNamespace($subp[$iter]);
         }
@@ -2494,7 +2494,7 @@ function _wisski_pathbuilder_add_groups_to_menu() {
       if(count($path) == 0) 
         $subclasses = wisski_store_getObj()->wisski_ARCAdapter_getAllConcepts(); //wisski_ARCAdapter_getSubClasses(wisski_store_getObj()->wisski_ARCAdapter_delNamespace("owl:Thing"));
       else {
-        $stringConcepts = wisskiReasoner_getRangeConcepts(wisski_store_getObj()->wisski_ARCAdapter_delNamespace(
+        $stringConcepts = wisski_reasoner_getRangeConcepts(wisski_store_getObj()->wisski_ARCAdapter_delNamespace(
               $form_state['storage']['wisski_pathbuilder_path'][("y" . ((floor(count($path)/2)) - 1))]));
 
         $subclasses = array();
