@@ -1362,7 +1362,7 @@ function wisski_pathbuilder_get_sparql($id, $conditions = "", $triplewise = FALS
   if(!$triplewise) {
     $sparql = "";
 
-    if(!variable_get("wisski_reasoner_inverse_reasoning",FALSE) || !$inverse) {
+    if(!variable_get("wisskiReasoner_inverse_reasoning",FALSE) || !$inverse) {
       $sparqlstart = "SELECT ";
     } else {
       $sparqlstart = "SELECT DISTINCT ";
@@ -1379,7 +1379,7 @@ function wisski_pathbuilder_get_sparql($id, $conditions = "", $triplewise = FALS
       for($ii=$startpoint; $ii<floor(count($path)/2); $ii++) {
         $sparqlstart .= "?x$ii ";
         $sparqlmid .= "?x$ii rdf:type <" . $path["x$ii"] . "> . { { ?x$ii <" . $path["y$ii"] . "> ?x" . ($ii + 1) . " } " .
-          "UNION { ?x" . ($ii + 1) . " <" . wisskiReasoner_getInverse($path["y$ii"]) . "> ?x$ii } } . ";
+          "UNION { ?x" . ($ii + 1) . " <" . wisski_reasoner_getInverse($path["y$ii"]) . "> ?x$ii } } . ";
       } 
     }
 
