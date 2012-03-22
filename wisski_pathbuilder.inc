@@ -328,14 +328,18 @@ drupal_add_js( 'sites/all/modules/wisski_pathbuilder/wisski_pathbuilder.js');
   $result = db_query("SELECT * FROM {wisski_template} WHERE `id` = $pathid");
   $row = db_fetch_array($result);
  
+  if ($arg2) {
+    $arg2_preg_quote = str_replace('\\', '\\\\', str_replace('"', '\\"', preg_quote($arg2)));
+  } 
+ 
   if($row['disamb'] > 1) {
     if($arg2)
-      $sparql = wisski_pathbuilder_get_sparql($pathid, 'FILTER regex(?out, "' . $arg2 . '", "i" )', FALSE, $row['disamb'] - 1, FALSE);
+      $sparql = wisski_pathbuilder_get_sparql($pathid, 'FILTER regex(?out, "' . $arg2_preg_quote . '", "i" )', FALSE, $row['disamb'] - 1, FALSE);
     else
       $sparql = wisski_pathbuilder_get_sparql($pathid, "", FALSE, $row['disamb'] - 1);
   } else {
     if($arg2)
-      $sparql = wisski_pathbuilder_get_sparql($pathid, 'FILTER regex(?out, "' . $arg2 . '", "i" )', FALSE, 0, FALSE);
+      $sparql = wisski_pathbuilder_get_sparql($pathid, 'FILTER regex(?out, "' . $arg2_preg_quote . '", "i" )', FALSE, 0, FALSE);
     else
       $sparql = wisski_pathbuilder_get_sparql($pathid, "");
   }
