@@ -141,7 +141,7 @@ function wisski_pathbuilder_menu() {
     'weight' => 2,
   );
   
-  include_once('sites/all/modules/wisski_pathbuilder/wisski_pathbuilder.inc');
+  include_once(dirname(__FILE__) . '/wisski_pathbuilder.inc');
   
   foreach(wisski_pathbuilder_getPathbuilderTrees() as $key => $elemname) {  
 
@@ -209,7 +209,7 @@ function wisski_pathbuilder_block($op = 'list', $delta = 0, $edit = array()) {
     if ($delta == 0) {
       
       $block['subject'] = t('Templated Content');
-      include_once('sites/all/modules/wisski_pathbuilder/wisski_pathbuilder.inc');
+      include_once(dirname(__FILE__) . '/wisski_pathbuilder.inc');
       $block['content'] =  wisski_pathbuilder_template_view(array(), $node);    
       return $block;          
     } else if ($delta == 1) {
@@ -220,7 +220,7 @@ function wisski_pathbuilder_block($op = 'list', $delta = 0, $edit = array()) {
     } else if ($delta == 2) {
 
       $block['subject'] = t('Images');
-      include_once('sites/all/modules/wisski_pathbuilder/wisski_pathbuilder.inc');
+      include_once(dirname(__FILE__) . '/wisski_pathbuilder.inc');
       $block['content'] = wisski_pathbuilder_getImages($node);
       return $block;
     }
