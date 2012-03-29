@@ -1,8 +1,15 @@
 <?php
 
+/*
+ * (c) WissKI Project wiss-ki.eu
+ * This software is licensed under the same terms as Drupal
+ * (GNU GPLv2  or later). See LICENSE.txt for a copy of the license.
+ */
+
 /**
  * @file
  * Allows administrators to customize the site templating menu.
+ *
  */
 
 function wisski_pathbuilder_init() {
