@@ -1652,8 +1652,6 @@ function wisski_pathbuilder_build_group_submit($form, &$form_state) {
 
 function _wisski_pathbuilder_calculate_group_samepart($groupid) {
   if(!$groupid || !isset($groupid)) {
-    wisski_log("No group id");
-    wisski_log(debug_backtrace());
     drupal_set_message("No groupid supplied!", "error");
     return;
   }
@@ -1671,8 +1669,6 @@ function _wisski_pathbuilder_calculate_group_samepart($groupid) {
 function wisski_pathbuilder_calculate_group_samepart($groupid) {
 
   if(!$groupid || !isset($groupid)) {
-    wisski_log("No group id");
-    wisski_log(debug_backtrace());
     drupal_set_message("No groupid supplied!", "error");
     return;
   }
@@ -1707,14 +1703,23 @@ function wisski_pathbuilder_calculate_group_samepart($groupid) {
 
   }
 
-  if(count($samepart) == 0)
-    return array();
-
-  if(count($samepart) % 2 == 0) {
-    unset($samepart["y" . ((count($samepart)/2)-1)]);
+# from here on bug fix by Mark Fichtner
+  $outsamepart = array();
+  
+  for($i = 0; !empty($samepart['x' . $i]); $i++) {
+    $outsamepart['x' . $i] = $samepart['x' . $i];
+    $outsamepart['y' . $i] = $samepart['y' . $i];
   }
+  
+  if(count($outsamepart) == 0)
+    return array();
+  
+  if(count($outsamepart) % 2 == 0) {
+    unset($outsamepart["y" . ((count($outsamepart) / 2) - 1)]);
+  }
+  
+  return $outsamepart;
 
-  return $samepart;
 }
 
 
