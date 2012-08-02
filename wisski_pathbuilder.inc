@@ -1382,8 +1382,14 @@ function wisski_pathbuilder_get_sparql($id, $conditions = "", $triplewise = FALS
     } else {
       for($ii=$startpoint; $ii<floor(count($path)/2); $ii++) {
         $sparqlstart .= "?x$ii ";
-        $sparqlmid .= "?x$ii rdf:type <" . $path["x$ii"] . "> . { { ?x$ii <" . $path["y$ii"] . "> ?x" . ($ii + 1) . " } " .
-          "UNION { ?x" . ($ii + 1) . " <" . wisski_reasoner_getInverse($path["y$ii"]) . "> ?x$ii } } . ";
+        // we have to check whether property really has an inverse!
+        $inverse = wisski_reasoner_getInverse($path["y$ii"]);
+        if (!$inverse) {
+          $sparqlmid .= "?x$ii rdf:type <" . $path["x$ii"] . "> . ?x$ii <" . $path["y$ii"] . "> ?x" . ($ii + 1) . " . ";
+        } else {
+          $sparqlmid .= "?x$ii rdf:type <" . $path["x$ii"] . "> . { { ?x$ii <" . $path["y$ii"] . "> ?x" . ($ii + 1) . " } " .
+            "UNION { ?x" . ($ii + 1) . " <" . $inverse . "> ?x$ii } } . ";
+        }
       } 
     }
 
@@ -1429,9 +1435,15 @@ function wisski_pathbuilder_get_sparql($id, $conditions = "", $triplewise = FALS
         $sparqlstart .= "?x$ii ";
         $elements[] = "?x$ii";
         $sparqltriples[] = "?x$ii rdf:type <" . $path["x$ii"] . "> ";
-        $sparqltriples[] = "{ { ?x$ii <" . $path["y$ii"] . "> ?x" . ($ii + 1) . 
-          " } UNION { ?x" . ($ii + 1) . " <" . wisski_reasoner_getInverse($path["y$ii"]) . 
-          "> ?x$ii } } ";
+        // we have to check whether property really has an inverse!
+        $inverse = wisski_reasoner_getInverse($path["y$ii"]);
+        if (!$inverse) {
+          $sparqltriples[] = "?x$ii <" . $path["y$ii"] . "> ?x" . ($ii + 1) . "";
+        } else {
+          $sparqltriples[] = "{ { ?x$ii <" . $path["y$ii"] . "> ?x" . ($ii + 1) . 
+            " } UNION { ?x" . ($ii + 1) . " <" . $inverse . 
+            "> ?x$ii } } ";
+        }
       }
     }
 
