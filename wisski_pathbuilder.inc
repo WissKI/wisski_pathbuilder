@@ -786,11 +786,11 @@ function wisski_pathbuilder_recursive_edit_submit($form, &$form_state, $groupid,
       else
         $oldvalues = array($form[$row['id']]['#default_value'] => $form[$row['id']]['#default_value']);
       // Delete the old ones
-      foreach($oldvalues as $value) {
+      foreach($oldvalues as $key => $value) {
         if(empty($value) || $value == "")
           continue;
 
-        if(empty($values[$value])) {
+        if(empty($values[$key]) || $values[$key] == "" || $values[$key] != $value) {
 
           $sparql = wisski_pathbuilder_get_sparql($row['id'], ($condition . ' . FILTER ( ?out = "' . $value . '" ) '));
 
@@ -807,14 +807,14 @@ function wisski_pathbuilder_recursive_edit_submit($form, &$form_state, $groupid,
               $delete .= ($triple .  " . ");
             }
 
-            $delete .= $condition . '. FILTER ( ?out = "' . $value . '" ) }';
+            $delete .= $condition . '. FILTER ( ?out = "' . $value . '" ) } LIMIT 1';
             wisski_store_getObj()->wisski_ARCAdapter_getStore()->query($delete);
         }
       }
       }
 
-      foreach($values as $value) {
-        if($value && empty($oldvalues[$value])) {
+      foreach($values as $key => $value) {
+        if($value && ( empty($oldvalues[$key]) || $oldvalues[$key] != $value )) { 
           $data = wisski_pathbuilder_get_group_samepart_data($groupid);
           $triples = _wisski_pathbuilder_generate_triples_of_path($form, $value, $row['id'], $data["x" . floor(count($data)/2)], $data);
 
