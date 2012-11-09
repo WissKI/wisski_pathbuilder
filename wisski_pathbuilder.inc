@@ -785,15 +785,13 @@ function wisski_pathbuilder_recursive_edit_submit($form, &$form_state, $groupid,
         $oldvalues = $form[$row['id']]['#default_value'];
       else
         $oldvalues = array($form[$row['id']]['#default_value'] => $form[$row['id']]['#default_value']);
-
-//      drupal_set_message("old ones: " . serialize($oldvalues));
       // Delete the old ones
-      foreach($oldvalues as $key => $value) {
+      foreach($oldvalues as $value) {
         if(empty($value) || $value == "")
           continue;
 
-        if(empty($values[$key]) || $values[$key] == "" || $values[$key] != $value) {
-//	  drupal_set_message("I have to delete one $key.");
+        if(empty($values[$value])) {
+
           $sparql = wisski_pathbuilder_get_sparql($row['id'], ($condition . ' . FILTER ( ?out = "' . $value . '" ) '));
 
           $sprows = wisski_store_getObj()->wisski_ARCAdapter_getStore()->query($sparql, 'rows');
@@ -809,16 +807,14 @@ function wisski_pathbuilder_recursive_edit_submit($form, &$form_state, $groupid,
               $delete .= ($triple .  " . ");
             }
 
-            $delete .= $condition . '. FILTER ( ?out = "' . $value . '" ) } LIMIT 1';
-//	    drupal_set_message(htmlentities($delete));
+            $delete .= $condition . '. FILTER ( ?out = "' . $value . '" ) }';
             wisski_store_getObj()->wisski_ARCAdapter_getStore()->query($delete);
-//	    drupal_set_message("errors: " . serialize(wisski_store_getObj()->wisski_ARCAdapter_getStore()->getErrors()));
         }
       }
       }
-//      drupal_set_message("new ones: " . serialize($values));
-      foreach($values as $key => $value) {
-        if($value && ( empty($oldvalues[$key]) || $oldvalues[$key] != $value )) {
+
+      foreach($values as $value) {
+        if($value && empty($oldvalues[$value])) {
           $data = wisski_pathbuilder_get_group_samepart_data($groupid);
           $triples = _wisski_pathbuilder_generate_triples_of_path($form, $value, $row['id'], $data["x" . floor(count($data)/2)], $data);
 
@@ -1386,8 +1382,14 @@ function wisski_pathbuilder_get_sparql($id, $conditions = "", $triplewise = FALS
     } else {
       for($ii=$startpoint; $ii<floor(count($path)/2); $ii++) {
         $sparqlstart .= "?x$ii ";
-        $sparqlmid .= "?x$ii rdf:type <" . $path["x$ii"] . "> . { { ?x$ii <" . $path["y$ii"] . "> ?x" . ($ii + 1) . " } " .
-          "UNION { ?x" . ($ii + 1) . " <" . wisski_reasoner_getInverse($path["y$ii"]) . "> ?x$ii } } . ";
+        // we have to check whether property really has an inverse!
+        $inverse = wisski_reasoner_getInverse($path["y$ii"]);
+        if (!$inverse) {
+          $sparqlmid .= "?x$ii rdf:type <" . $path["x$ii"] . "> . ?x$ii <" . $path["y$ii"] . "> ?x" . ($ii + 1) . " . ";
+        } else {
+          $sparqlmid .= "?x$ii rdf:type <" . $path["x$ii"] . "> . { { ?x$ii <" . $path["y$ii"] . "> ?x" . ($ii + 1) . " } " .
+            "UNION { ?x" . ($ii + 1) . " <" . $inverse . "> ?x$ii } } . ";
+        }
       } 
     }
 
@@ -1433,9 +1435,15 @@ function wisski_pathbuilder_get_sparql($id, $conditions = "", $triplewise = FALS
         $sparqlstart .= "?x$ii ";
         $elements[] = "?x$ii";
         $sparqltriples[] = "?x$ii rdf:type <" . $path["x$ii"] . "> ";
-        $sparqltriples[] = "{ { ?x$ii <" . $path["y$ii"] . "> ?x" . ($ii + 1) . 
-          " } UNION { ?x" . ($ii + 1) . " <" . wisski_reasoner_getInverse($path["y$ii"]) . 
-          "> ?x$ii } } ";
+        // we have to check whether property really has an inverse!
+        $inverse = wisski_reasoner_getInverse($path["y$ii"]);
+        if (!$inverse) {
+          $sparqltriples[] = "?x$ii <" . $path["y$ii"] . "> ?x" . ($ii + 1) . "";
+        } else {
+          $sparqltriples[] = "{ { ?x$ii <" . $path["y$ii"] . "> ?x" . ($ii + 1) . 
+            " } UNION { ?x" . ($ii + 1) . " <" . $inverse . 
+            "> ?x$ii } } ";
+        }
       }
     }
 
@@ -1644,8 +1652,6 @@ function wisski_pathbuilder_build_group_submit($form, &$form_state) {
 
 function _wisski_pathbuilder_calculate_group_samepart($groupid) {
   if(!$groupid || !isset($groupid)) {
-    wisski_log("No group id");
-    wisski_log(debug_backtrace());
     drupal_set_message("No groupid supplied!", "error");
     return;
   }
@@ -1663,8 +1669,6 @@ function _wisski_pathbuilder_calculate_group_samepart($groupid) {
 function wisski_pathbuilder_calculate_group_samepart($groupid) {
 
   if(!$groupid || !isset($groupid)) {
-    wisski_log("No group id");
-    wisski_log(debug_backtrace());
     drupal_set_message("No groupid supplied!", "error");
     return;
   }
@@ -1699,29 +1703,23 @@ function wisski_pathbuilder_calculate_group_samepart($groupid) {
 
   }
 
-  // intersect_assoc could find path elements at the end of the path same indexed. In this case the path has to be cut!
-  $m_samepart = array();
-  $i = 0;
-
-  $m_samepart['x0'] = $samepart['x0'];
-  while(true) {
-    if(isset($samepart['y' . $i]) && isset($samepart['x' . ($i+1)]) ) {
-      $m_samepart['y' . $i] = $samepart['y' . $i];  
-      $m_samepart['x' . $i+1] = $samepart['x' . ($i+1)];
-    } else {
-      break;
-    }
-    $i++;
+# from here on bug fix by Mark Fichtner
+  $outsamepart = array();
+  
+  for($i = 0; !empty($samepart['x' . $i]); $i++) {
+    $outsamepart['x' . $i] = $samepart['x' . $i];
+    $outsamepart['y' . $i] = $samepart['y' . $i];
   }
-
-  if(count($m_samepart) == 0)
+  
+  if(count($outsamepart) == 0)
     return array();
-
-  if(count($m_samepart) % 2 == 0) {
-    unset($m_samepart["y" . ((count($m_samepart)/2)-1)]);
+  
+  if(count($outsamepart) % 2 == 0) {
+    unset($outsamepart["y" . ((count($outsamepart) / 2) - 1)]);
   }
+  
+  return $outsamepart;
 
-  return $m_samepart;
 }
 
 
