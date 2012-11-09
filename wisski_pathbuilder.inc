@@ -566,6 +566,7 @@ function wisski_pathbuilder_getGroupIDForConcept($type, $use_type = 1) {
 
   // Get the favorite user groups for all users
   $var = variable_get("wisski_pathbuilder_templateids", array());
+  //drupal_set_message("var: " . serialize($var));
 
   // get the user
   global $user;
@@ -814,7 +815,10 @@ function wisski_pathbuilder_recursive_edit_submit($form, &$form_state, $groupid,
       }
 
       foreach($values as $key => $value) {
-        if($value && ( empty($oldvalues[$key]) || $oldvalues[$key] != $value )) { 
+	if(empty($value) || $value == "")
+	  continue;
+
+        if($value && ( empty($oldvalues[$key]) || $oldvalues[$key] == "" || $oldvalues[$key] != $value )) { 
           $data = wisski_pathbuilder_get_group_samepart_data($groupid);
           $triples = _wisski_pathbuilder_generate_triples_of_path($form, $value, $row['id'], $data["x" . floor(count($data)/2)], $data);
 
@@ -1908,7 +1912,7 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, $inpu
   $samepart = _wisski_pathbuilder_calculate_group_samepart($parentID);
 
   if(!isset($vars[$user->uid][$samepart["x" . (floor(count($samepart)/2))]]) ||
-      $vars[$user->uid][$samepart["x" . (floor(count($samepart)/2))]] != $parentID) {
+      ($vars[$user->uid][$samepart["x" . (floor(count($samepart)/2))]] != $parentID && $grouparr['group_id'] == 0)) {
     $vars[$user->uid][$samepart["x" . (floor(count($samepart)/2))]] = $parentID;
     variable_set("wisski_pathbuilder_templateids", $vars);
   }
