@@ -612,6 +612,8 @@ function wisski_pathbuilder_getGroupIDForIndividual($ind, $type = 1) {
     return;
   }
 
+  $ind = str_replace(" ", "_", $ind);
+
   $sparql = "SELECT ?x WHERE { <" . $ind . "> <" . wisski_store_getObj()->wisski_ARCAdapter_delNamespace("rdf:type") . "> ?x }";
   $out = wisski_store_getObj()->wisski_ARCAdapter_getStore()->query($sparql);
 
