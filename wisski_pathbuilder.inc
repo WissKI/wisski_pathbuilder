@@ -1174,8 +1174,22 @@ function wisski_pathbuilder_template_view($form_state, $node, &$groupid = -1, $s
     while($arr = db_fetch_array($result)) {
     
       $this_path = $xmldoc->addChild("path");
-      foreach($arr as $key => $value)
-        $this_path->addChild(htmlentities($key), htmlentities($value));
+// changes by Martin Scholz
+// the former code produces crappy xml as entities get not escaped properly
+// old      foreach($arr as $key => $value)
+//        $this_path->addChild($key), htmlentities($value));
+      foreach($arr as $key => $value) {
+        if ($key == 'path_array') {
+          $value = unserialize($value);
+          $pa_node = $this_path->addChild($key);
+          foreach ($value as $k => $v) {
+            $pa_node->addChild($k, htmlspecialchars($v));
+          }
+        } else {
+          $this_path->addChild($key, htmlspecialchars($value));
+        }
+      }
+// end changes
       if($arr['is_group'])
         wisski_pathbuilder_export_group($arr['id'], $tree, $xmldoc);
     }
@@ -1196,13 +1210,23 @@ function wisski_pathbuilder_template_view($form_state, $node, &$groupid = -1, $s
     
       $result = db_query("SELECT * FROM {wisski_template} WHERE `uuid` = '" . html_entity_decode((string)$path->uuid) . "'");
       
+// inserted by martin scholz
+// see ..._export_paths()
+      $path_array = array();
+      foreach ($path->path_array->children() as $n) {
+        $path_array[$n->getName()] = (string) $n;
+      }
+      $path_array = serialize($path_array);
+// end insert
+      
       if($arr = db_fetch_array($result)) { // update
         db_query("UPDATE {wisski_template} SET 
           `path_array` = '%s', `datatype_property` = '%s', `short_name` = '%s', `disamb` = '%s', 
           `length` = %d, `name` = '%s', `description` = '%s', 
           `group_id` = %d, `weight` = %d, `is_group` = %d, `fieldtype` = '%s', `enabled` = %d, 
           `mandatory` = %d, `repeatable` = %d, `type` = %d WHERE `uuid` = '%s'", 
-          html_entity_decode((string)$path->path_array),
+          $path_array,
+// by Martin Scholz           html_entity_decode((string)$path->path_array),
           html_entity_decode((string)$path->datatype_property),
           html_entity_decode((string)$path->short_name),
           html_entity_decode((string)$path->disamb), 
@@ -1225,7 +1249,8 @@ function wisski_pathbuilder_template_view($form_state, $node, &$groupid = -1, $s
           `group_id` = %d, `weight` = %d, `is_group` = %d, `fieldtype` = '%s', `enabled` = %d, 
           `mandatory` = %d, `repeatable` = %d, `type` = %d", 
           html_entity_decode((string)$path->uuid),
-          html_entity_decode((string)$path->path_array),
+          $path_array,
+// by Martin Scholz           html_entity_decode((string)$path->path_array),
           html_entity_decode((string)$path->datatype_property),
           html_entity_decode((string)$path->short_name),
           html_entity_decode((string)$path->disamb), 
@@ -1261,13 +1286,23 @@ function wisski_pathbuilder_template_view($form_state, $node, &$groupid = -1, $s
         } else {
          $myparentid = wisski_pathbuilder_check_parent(html_entity_decode((int)$path->group_id), $xmldoc);
          
-         db_query("INSERT INTO {wisski_template} SET 
+// inserted by martin scholz
+// see ..._export_paths()
+          $path_array = array();
+          foreach ($path->path_array as $n) {
+            $path_array[$n] = $path->path_array->$n;
+          }
+          $path_array = serialize($path_array);
+// end insert
+
+          db_query("INSERT INTO {wisski_template} SET 
           `uuid` = '%s', `path_array` = '%s', `datatype_property` = '%s', `short_name` = '%s', `disamb` = '%s', 
           `length` = %d, `name` = '%s', `description` = '%s', 
           `group_id` = %d, `weight` = %d, `is_group` = %d, `fieldtype` = '%s', `enabled` = %d, 
           `mandatory` = %d, `repeatable` = %d, `type` = %d", 
           html_entity_decode((string)$path->uuid),
-          html_entity_decode((string)$path->path_array),
+          $path_array,
+// by Martin Scholz          html_entity_decode((string)$path->path_array),
           html_entity_decode((string)$path->datatype_property),
           html_entity_decode((string)$path->short_name),
           html_entity_decode((string)$path->disamb), 
