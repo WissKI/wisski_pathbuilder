@@ -63,27 +63,15 @@ function wisski_pathbuilder_menu() {
     'type' => MENU_CALLBACK,
   );
 
-  global $user;
-
-  $node = new stdclass();
-//  $node->uid = $user->uid;
-//  $node->name = $user->name;
-  $node->type = "individual";
-  $node->language = "";
-
   $items['node/add/individual/%wisski_pathbuilder_group'] = array(
     'title' => t("Group"),
     'description' => t("Desc"),
-//    'page callback' => 'drupal_get_form',
-//    'page callback' => 'wisski_pathbuilder_build_group',
-    'page callback' => 'wisski_form_forward',
-    'page arguments' => array($node),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('wisski_pathbuilder_build_group', 3),
     'access callback' => 'user_access',
     'access arguments' => array('wisski access templateCreate'),
     'type'     => MENU_NORMAL_ITEM,            
-    'file path' => drupal_get_path('module', 'node'),
-    'file' => 'node.pages.inc',
-//    'file' => 'wisski_pathbuilder.inc',
+    'file' => 'wisski_pathbuilder.inc',
   );
 
   $items['node/%node/tview'] = array(
@@ -108,10 +96,8 @@ function wisski_pathbuilder_menu() {
   
   $items['node/%node/tedit'] = array(
     'title'    => t('Edit'),
-   // 'page callback' => 'drupal_get_form',
-   // 'page arguments' => array('wisski_pathbuilder_template_edit',1),
-    'page callback' => 'wisski_form_forward',
-    'page arguments' => array(1), 
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('wisski_pathbuilder_template_edit',1),
     'access callback' => 'wisski_loader',
     'access arguments' => array(1, 'wisski access templateEdit'),
     'type'     => MENU_LOCAL_TASK,
@@ -180,21 +166,6 @@ function wisski_pathbuilder_menu() {
   }
   
   return $items;
-}
-
-function wisski_form_forward($node) {
-
-  module_load_include('inc', 'node', 'node.pages');
-  
-  //drupal_set_message("got: " . $node);
-
-  if(empty($node->nid)) {
-    global $user;
-    node_object_prepare($node);
-    $node->uid = $user->uid;
-    $node->name = $user->name;
-  }
-  return drupal_get_form('individual_node_form', $node);
 }
 
 /**
@@ -394,190 +365,5 @@ function wisski_pathbuilder_getCoordinates($node) {
 function wisski_pathbuilder_menu_alter(&$items) {
 
   $items['node/%node/tview']['type'] = MENU_CALLBACK;
-
-}
-
-
-function wisski_pathbuilder_form_individual_node_form_alter(&$form, &$form_state) {
-//  drupal_set_message(serialize("hallo!") . arg(1) . arg(2));
-  
-//  drupal_set_message(serialize($form_state));
-//  drupal_set_message(serialize($form['nid']));
-
-  module_load_include('inc', 'wisski_pathbuilder', 'wisski_pathbuilder');
-  module_load_include('inc', 'node', 'node.pages');
-          
-
-  if(!$form['nid']['#value']) {
-    if(empty($form_state['values']['group']))
-      $groupid = wisski_pathbuilder_group_load(arg(3));
-    else
-      $groupid = $form_state['values']['group'];
-    
-    $newform = wisski_pathbuilder_build_group($form_state, $groupid);
-  
-  } else {
-    $node = node_load($form['nid']['#value']);
-    $groupid = wisski_pathbuilder_getGroupIDForIndividual(wisski_store_getObj()->wisski_ARCAdapter_delNamespace($node->title));
-    $newform = wisski_pathbuilder_template_edit($form_state, $node);
-  }
-
-  $form_state['values']['group'] = $groupid;
-  
-  //drupal_set_message(serialize($formnew));
-  
-  $form['#node']->step = 2;
-  
-  $todelete = array("title", "instanceOf", "instanceOfSelect", "instanceOfAdd", "propfield");
-  
-  foreach ($todelete as $key) {
-    unset($form[$key]);
-  }
-  
-  foreach($newform as $key => $value) {
-    $newform[$key]['#weight'] = -100;
-    break;
-  }
-  
-  $oldform = $form;
-  
-  $form = $newform + $oldform; 
-  
-//  drupal_set_message(serialize($form));
-  
-  return;
-  
-}
-
-function wisski_pathbuilder_form_alter(&$form, &$form_state, $form_id) {
-
-//  foreach($form['attachments']['wrapper']['new']['attach'] as $k => $fm)
-//    drupal_set_message("alter a form: " . serialize($k) . " with value " . serialize($fm));
-
-  // add?
-  if($form_id == "individual_node_form" && !$form['nid']['#value']) {
-    //drupal_set_message("alter: " . serialize($form_state));
-    $killhandlers = array("wisski_valuesToStorage", "wisski_saveInstanceOfState", "wisski_savePropertyState", "wisski_node_form_final_submit");
-    
-    foreach($form['buttons']['submit']['#submit'] as $key => $kill)
-      if(in_array($kill, $killhandlers))
-        unset($form['buttons']['submit']['#submit'][$key]);
-
-    module_load_include('inc', 'wisski_pathbuilder', 'wisski_pathbuilder');
-    //array_unshift($form['buttons']['submit']['#submit'], 'wisski_pathbuilder_build_group_submit');
-    
-//    drupal_set_message("after alter: " . serialize($form));
-//    drupal_set_message("form submit: " . serialize($form['#submit']));
-    $form['buttons']['submit']['#submit'] = array_merge(array('wisski_pathbuilder_alter_add_submit'),$form['buttons']['submit']['#submit']);
-    $form['#submit'] = array_merge(array('wisski_pathbuilder_rescue_values'), $form['#submit']);
-//geht:    $form['#submit'] = array_merge(array('wisski_pathbuilder_alter_submit'), $form['#submit']);
-  
-  // edit!
-  } else if($form_id == "individual_node_form" && $form['nid']['#value']) {
-//    drupal_set_message("do some edit");  
-    
-    $killhandlers = array("wisski_valuesToStorage", "wisski_saveInstanceOfState", "wisski_savePropertyState", "wisski_node_form_final_submit");
-    
-    foreach($form['buttons']['submit']['#submit'] as $key => $kill)
-      if(in_array($kill, $killhandlers))
-        unset($form['buttons']['submit']['#submit'][$key]);
-
-    module_load_include('inc', 'wisski_pathbuilder', 'wisski_pathbuilder');
-    //array_unshift($form['buttons']['submit']['#submit'], 'wisski_pathbuilder_build_group_submit');
-    
-//    drupal_set_message("after alter: " . serialize($form));
-//    drupal_set_message("form submit: " . serialize($form['#submit']));
-    $form['buttons']['submit']['#submit'] = array_merge(array('wisski_pathbuilder_alter_edit_submit'),$form['buttons']['submit']['#submit']);
-    $form['#submit'] = array_merge(array('wisski_pathbuilder_rescue_values'), $form['#submit']);
-  }// else if(arg(1) == "duplicate" && is_numeric(arg(2))) {
-    
-  //}
-
-}
-
-function wisski_imageprocessing($form, &$form_state) {
-  module_load_include('inc', 'wisski_pathbuilder', 'wisski_pathbuilder');
-//  drupal_set_message(serialize($form));
-  
-  if($form_state['values']['files']) {
-    foreach($form_state['values']['files'] as $file) {
-//      drupal_set_message(serialize($file));
-//      drupal_set_message($file['remove']);
-//      drupal_set_message(preg_match('/(\.png|\.jpg|\.jpeg|\.gif)$/', $file['filename']));
-      if(preg_match('/(\.png|\.jpg|\.jpeg|\.gif)$/', $file['filename'])) {
-//        drupal_set_message("haha!");
-        $allgroups = wisski_pathbuilder_getAllMembers($form_state['values']['group'], FALSE);
-        
-        $imagegroups = array();
-          
-        foreach($allgroups as $imagegroup) {
-          $data = wisski_pathbuilder_getPathData($imagegroup);
-          if($data['fieldtype'] == "images") {
-            $imagegroups[] = $imagegroup;
-          }
-        }
-      
-        if(count($imagegroups) <= 0) 
-          break;
-      
-        $to_attach = $imagegroups[count($imagegroups)-1];
-      
-      //  drupal_set_message("before: " . serialize($form_state['values'][$to_attach]));
-      
-        $already_there = false;
-        foreach($form_state['values'][$to_attach] as $key => $value) 
-          if($value == file_create_url($file['filepath']))
-            $already_there = $key;
-      
-        if(!$already_there && !$file['remove'])
-          $form_state['values'][$to_attach][$to_attach . '_' . count($form_state['values'][$to_attach])] = file_create_url($file['filepath']);
-        if($already_there && $file['remove'])
-          $form_state['values'][$to_attach][$already_there] = "";
-        
-      //  drupal_set_message("after: " . serialize($form_state['values'][$to_attach]));
-      }
-    }
-  }
-}
-
-function wisski_pathbuilder_alter_add_submit($form, &$form_state) {
-  module_load_include('inc', 'wisski_pathbuilder', 'wisski_pathbuilder');
-  
-  upload_node_form_submit(&$form, $form_state);
-  
-  wisski_imageprocessing($form, $form_state);
-
-  wisski_pathbuilder_build_group_submit($form, $form_state);
-//  drupal_set_message("juhu!");
-}
-
-function wisski_pathbuilder_alter_edit_submit($form, &$form_state) {
-//  drupal_set_message("na immerhin!");
-  module_load_include('inc', 'wisski_pathbuilder', 'wisski_pathbuilder');
-  
-  upload_node_form_submit(&$form, $form_state);
-  
-  wisski_imageprocessing($form, $form_state);
-  
-  wisski_pathbuilder_template_edit_submit($form, $form_state);
-  
-//  if($form_state
-  
-//  drupal_set_message("die form ist: " . serialize($form));
-  
-//  drupal_set_message(serialize($form_state));
-/*  
-  foreach($form_state['values'] as $key => $value) {
-    drupal_set_message("key is: " . serialize($key));
-    drupal_set_message("value is: " . serialize($value));
-  }
-*/
-//  drupal_set_message("juhu!");
-}
-
-function wisski_pathbuilder_rescue_values($form, &$form_state) {
-//  drupal_set_message("I am back!");
-//  drupal_set_message(serialize($form_state['values']));
-  $form_state['wisskiValues'] = $form_state['values'];
 
 }
