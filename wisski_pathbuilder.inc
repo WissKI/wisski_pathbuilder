@@ -805,19 +805,6 @@ function wisski_pathbuilder_recursive_edit_submit($form, &$form_state, $groupid,
         $oldvalues = array($form[$row['id']]['#default_value'] => $form[$row['id']]['#default_value']);
 
       // Delete the old ones
-//      foreach($oldvalues as $key => $value) {
-//        if(empty($value) || $value == "")
-//          continue;
- //         drupal_set_message("deleting $value");
-
-//        if(empty($values[$key]) || $values[$key] == "" || $values[$key] != $value) {
-
-//      $sparql = wisski_pathbuilder_get_sparql($row['id'], ($condition . ' . FILTER ( ?out = "' . $value . '" ) '));
-
-//      $sprows = wisski_store_getObj()->wisski_ARCAdapter_getStore()->query($sparql, 'rows');
-
-//      if(count($sprows) > 0) {
-
       $spq = wisski_pathbuilder_get_sparql($row['id'], $condition);
       
       $sqrows = wisski_store_getObj()->wisski_ARCAdapter_getStore()->query($spq, 'rows');
@@ -830,11 +817,6 @@ function wisski_pathbuilder_recursive_edit_submit($form, &$form_state, $groupid,
       
         if($row['disamb'] > 0) 
           $delete = ("DELETE { " . $sparql['triples'][1+(($row['disamb'] - 2) * 2) ] . " . } WHERE { ");
-/*        else if(count($data) + 2 <= count($sparql['triples']))
-          $delete = ("DELETE { " . $sparql['triples'][count($data)+2] . " . } WHERE { ");
-        else
-          $delete = ("DELETE { " . $sparql['triples'][count($sparql['triples'])-1] . " . } WHERE { ");               
-*/
         else
           $delete = ("DELETE { " . $sparql['triples'][count($data)] . " . } WHERE { ");
                       
@@ -843,18 +825,16 @@ function wisski_pathbuilder_recursive_edit_submit($form, &$form_state, $groupid,
         }
 
         $delete .= $condition . '. FILTER ( ?out = "' . $one_row['out'] . '" ) } LIMIT 1';
-        drupal_set_message(htmlentities($delete));
+
         wisski_store_getObj()->wisski_ARCAdapter_getStore()->query($delete);
       }
-//      }
-//      }
 
 
       foreach($values as $key => $value) {
 	if(empty($value) || $value == "")
 	  continue;
 
-        if($value) { // && ( empty($oldvalues[$key]) || $oldvalues[$key] == "" || $oldvalues[$key] != $value )) { 
+        if($value) {
           
           $data = wisski_pathbuilder_get_group_samepart_data($groupid);
           $triples = _wisski_pathbuilder_generate_triples_of_path($form, $value, $row['id'], $data["x" . floor(count($data)/2)], $data);
@@ -892,8 +872,8 @@ function _wisski_pathbuilder_generate_triples_of_path($form, $valuestr, $id, $su
 
   $subj = $subjIn;
 
-  if($disambx && $disambx > 0 && isset($disambx) && ($disambx -2) >= floor(count($samepart)/2) ) {
-    $subj = $samepart["x" . ($disambx - 2) ];
+  if($disambx && $disambx > 0 && isset($disambx) && ($disambx -1) <= floor(count($samepart)/2) ) {
+    $subj = $samepart["x" . ($disambx - 1) ];
   }
 
   $path = unserialize($row['path_array']);
