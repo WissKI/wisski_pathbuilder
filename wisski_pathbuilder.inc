@@ -397,7 +397,7 @@ drupal_add_js( 'sites/all/modules/wisski_pathbuilder/wisski_pathbuilder.js');
           
           $uris = wisski_vocab_ctrl_lookup('labels', $auth, NULL, $h_term, $limit, $offset, 'exact');
         } else {
-          $uris = wisski_vocab_ctrl_lookup('labels', $auth, NULL, $arg2, $limit, $offset, 'starts_word');
+          $uris = wisski_vocab_ctrl_lookup('labels', $auth, NULL, $arg2, $limit, $offset, 'contains');
         }
 
         if (!$uris) {
