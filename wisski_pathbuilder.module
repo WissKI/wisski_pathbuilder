@@ -486,16 +486,44 @@ function wisski_imageprocessing($form, &$form_state) {
           break;
       
         $to_attach = $imagegroups[count($imagegroups)-1];
+        $to_get_there = array();
+        $current = $to_attach;
+        $multigroups = array();
+      
+        while($current != 0) {
+          $data = wisski_pathbuilder_getPathData($current);
+          if($data['fieldtype'] == "ontogroup")
+            $multigroups[$current] = TRUE;
+          else
+            $multigroups[$current] = FALSE;
+          $to_get_there = array_merge(array($current), $to_get_there);
+          $current = $data['group_id'];
+        }
+        
+//        drupal_set_message(serialize($to_get_there));
+//        return;
+        
+        $fs_pointer = &$form_state['values'];
+      
+        foreach($to_get_there as $go_to) {
+//          drupal_set_message("fs pointer is now: " . serialize($fs_pointer));
+          if($multigroups[$go_to])
+            $fs_pointer = &$fs_pointer[$go_to][$go_to][$go_to . '_0'];
+          else
+            $fs_pointer = &$fs_pointer[$go_to][$go_to];
+        }
+//        drupal_set_message("fs pointer is now: " . serialize($fs_pointer));
       
         $already_there = false;
-        foreach($form_state['values'][$to_attach] as $key => $value) 
-          if($value == file_create_url($file['filepath']))
-            $already_there = $key;
+        if($fs_pointer)
+          foreach($fs_pointer as $key => $value) 
+            if($value == file_create_url($file['filepath']))
+              $already_there = $key;
       
         if(!$already_there && !$file['remove'])
-          $form_state['values'][$to_attach][$to_attach . '_' . count($form_state['values'][$to_attach])] = file_create_url($file['filepath']);
+          $fs_pointer[$to_attach . '_' . count($fs_pointer)] = file_create_url($file['filepath']);
         if($already_there && $file['remove'])
-          $form_state['values'][$to_attach][$already_there] = "";
+          $fs_pointer[$already_there] = "";
 
       }
     }
@@ -508,6 +536,8 @@ function wisski_pathbuilder_alter_add_submit($form, &$form_state) {
   upload_node_form_submit(&$form, $form_state);
   
   wisski_imageprocessing($form, $form_state);
+  
+  wisski_pathbuilder_rescue_values($form, $form_state);
 
   wisski_pathbuilder_build_group_submit($form, $form_state);
 
@@ -520,6 +550,8 @@ function wisski_pathbuilder_alter_edit_submit($form, &$form_state) {
   upload_node_form_submit(&$form, $form_state);
   
   wisski_imageprocessing($form, $form_state);
+
+  wisski_pathbuilder_rescue_values($form, $form_state);
   
   wisski_pathbuilder_template_edit_submit($form, $form_state);
 
@@ -528,5 +560,15 @@ function wisski_pathbuilder_alter_edit_submit($form, &$form_state) {
 function wisski_pathbuilder_rescue_values($form, &$form_state) {
 
   $form_state['wisskiValues'] = $form_state['values'];
-
+  
+//  drupal_set_message("rescued!");  
+  if(empty($form_state['wisskiValues']['old_values'])) {
+    $form_state['wisskiValues']['old_values'] = $form_state['values']['defaults'];
+  }
+  
+  if(empty($form_state['wisskiValues']['paths'])) {
+    $form_state['wisskiValues']['paths'] = $form_state['values']['paths'];
+  }
+  
 }
+
