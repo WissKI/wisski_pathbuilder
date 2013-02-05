@@ -83,8 +83,22 @@ function wisski_pathbuilder_menu() {
 
   $items['node/%node/tview'] = array(
     'title'    => t('Template View'),
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('wisski_pathbuilder_template_view',1),
+    'page callback' => 'wisski_pathbuilder_template_view',
+    'page arguments' => array(array(), 1),
+//    'page callback' => 'drupal_get_form',
+//    'page arguments' => array('wisski_pathbuilder_template_view',1),
+    'access callback' => 'wisski_loader',
+    'access arguments' => array(1, 'wisski access templateView'),
+    'type'     => MENU_LOCAL_TASK,
+    'file' => 'wisski_pathbuilder.inc',
+  );
+  
+  $items['node/%node/xview'] = array(
+    'title'    => t('Text View'),
+    'page callback' => 'wisski_pathbuilder_getText',
+    'page arguments' => array(1),
+//    'page callback' => 'drupal_get_form',
+//    'page arguments' => array('wisski_pathbuilder_template_view',1),
     'access callback' => 'wisski_loader',
     'access arguments' => array(1, 'wisski access templateView'),
     'type'     => MENU_LOCAL_TASK,
@@ -328,7 +342,7 @@ function wisski_pathbuilder_getImages($node) {
       $factorx = variable_get("wisski_pathbuilder_targetImageWidth", 150)/$pics[0];
 
       $factor = $factorx;
-      $imagestr .= '<a href="javascript:void(0);" title="' . $pic . '" onclick="window.open(\'' .
+      $imagestr .= '<a class="th" href="javascript:void(0);" title="' . $pic . '" onclick="window.open(\'' .
                    $pic . '\', \'\', \'height=' . $pics[1] . ',width=' . $pics[0] . '\');">' .
                    '<img src="' . $pic . '" alt="' . $pic . '"/></a>'; //width="' . round($pics[0]*$factor) . '"></a>';
                                                             
@@ -384,7 +398,7 @@ function wisski_pathbuilder_getCoordinates($node) {
 
 function wisski_pathbuilder_menu_alter(&$items) {
 
-  $items['node/%node/tview']['type'] = MENU_CALLBACK;
+//  $items['node/%node/tview']['type'] = MENU_CALLBACK;
 
 }
 
@@ -393,21 +407,22 @@ function wisski_pathbuilder_form_individual_node_form_alter(&$form, &$form_state
 
   module_load_include('inc', 'wisski_pathbuilder', 'wisski_pathbuilder');
   module_load_include('inc', 'node', 'node.pages');
-          
-
+  
   if(!$form['nid']['#value']) {
     if(empty($form_state['values']['group']))
       $groupid = wisski_pathbuilder_group_load(arg(3));
     else
       $groupid = $form_state['values']['group'];
-    
+
     $newform = wisski_pathbuilder_build_group($form_state, $groupid);
   
   } else {
     $node = node_load($form['nid']['#value']);
+//    drupal_set_message("title is: " . serialize($node));
     $groupid = wisski_pathbuilder_getGroupIDForIndividual(wisski_store_getObj()->wisski_ARCAdapter_delNamespace($node->title));
     $newform = wisski_pathbuilder_template_edit($form_state, $node);
   }
+//  drupal_set_message("gid: " . $groupid);
 
   $form_state['values']['group'] = $groupid;
   
