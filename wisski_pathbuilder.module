@@ -332,6 +332,10 @@ function wisski_pathbuilder_getImages($node) {
       
       if(trim($pic) == "")
         continue;
+        
+      //$pic = rawurlencode($pic);
+
+      $pic = str_replace(' ', '%20', $pic);
 
       $pics = getimagesize($pic);
       if($pics == 0) {
