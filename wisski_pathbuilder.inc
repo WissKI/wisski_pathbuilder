@@ -1783,7 +1783,7 @@ function wisski_pathbuilder_path_view($form_state, $node) {
 // see ..._export_paths()
       $path_array = array();
       foreach ($path->path_array->children() as $n) {
-        $path_array[$n->getName()] = (string) $n;
+        $path_array[$n->getName()] = wisski_store_getObj()->wisski_ARCAdapter_delNamespace((string) $n);
       }
       $path_array = serialize($path_array);
 // end insert
@@ -1796,7 +1796,7 @@ function wisski_pathbuilder_path_view($form_state, $node) {
           `mandatory` = %d, `repeatable` = %d, `type` = %d WHERE `uuid` = '%s'", 
           $path_array,
 // by Martin Scholz           html_entity_decode((string)$path->path_array),
-          html_entity_decode((string)$path->datatype_property),
+          wisski_store_getObj()->wisski_ARCAdapter_delNamespace(html_entity_decode((string)$path->datatype_property)),
           html_entity_decode((string)$path->short_name),
           html_entity_decode((string)$path->disamb), 
           html_entity_decode((int)$path->length), 
@@ -1820,7 +1820,7 @@ function wisski_pathbuilder_path_view($form_state, $node) {
           html_entity_decode((string)$path->uuid),
           $path_array,
 // by Martin Scholz           html_entity_decode((string)$path->path_array),
-          html_entity_decode((string)$path->datatype_property),
+          wisski_store_getObj()->wisski_ARCAdapter_delNamespace(html_entity_decode((string)$path->datatype_property)),
           html_entity_decode((string)$path->short_name),
           html_entity_decode((string)$path->disamb), 
           html_entity_decode((int)$path->length), 
@@ -1858,8 +1858,8 @@ function wisski_pathbuilder_path_view($form_state, $node) {
 // inserted by martin scholz
 // see ..._export_paths()
           $path_array = array();
-          foreach ($path->path_array as $n) {
-            $path_array[$n] = $path->path_array->$n;
+          foreach ($path->path_array->children() as $n) {
+            $path_array[$n->getName()] = wisski_store_getObj()->wisski_ARCAdapter_delNamespace((string) $n);
           }
           $path_array = serialize($path_array);
 // end insert
@@ -1872,7 +1872,7 @@ function wisski_pathbuilder_path_view($form_state, $node) {
           html_entity_decode((string)$path->uuid),
           $path_array,
 // by Martin Scholz          html_entity_decode((string)$path->path_array),
-          html_entity_decode((string)$path->datatype_property),
+          wisski_store_getObj()->wisski_ARCAdapter_delNamespace(html_entity_decode((string)$path->datatype_property)),
           html_entity_decode((string)$path->short_name),
           html_entity_decode((string)$path->disamb), 
           html_entity_decode((int)$path->length), 
