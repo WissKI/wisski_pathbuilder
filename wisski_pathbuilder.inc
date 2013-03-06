@@ -1238,7 +1238,6 @@ function _wisski_pathbuilder_generate_triples_of_path($form, $valuestr, $id, $su
     $subj = $samepart["x" . ($disambx - 1) ];
   }
   
-
   $path = unserialize($row['path_array']);
   $tmpTriples = array();
   $i=0;
@@ -2407,7 +2406,7 @@ function _wisski_pathbuilder_gen_triples_of_group($form, &$form_state, $groupid,
  **/
 function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$paths, $input = 1, $sparqlcondition = "", $treetype = 1) {  
   
-  drupal_add_js( 'sites/all/modules/wisski_pathbuilder/wisski_pathbuilder.js');
+  drupal_add_js(drupal_get_path('module', 'wisski_pathbuilder') . '/wisski_pathbuilder.js');
   $vars = variable_get("wisski_pathbuilder_templateids", array());
 //  drupal_set_message("build with formstate: " . serialize($form_state));
   global $user;
