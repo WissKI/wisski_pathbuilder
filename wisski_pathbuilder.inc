@@ -1376,7 +1376,6 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
 function _wisski_pathbuilder_generate_triples_of_path($form, $valuestr, $id, $subjIn = "", $samepart = array(), $objIn = NULL, $obj_x = -1) {
   if(empty($valuestr))
     return array();
-    
   $result = db_query("SELECT * FROM {wisski_template} WHERE `id` = $id ");
 
   $sameMax = floor(count($samepart)/2);
@@ -1409,18 +1408,21 @@ function _wisski_pathbuilder_generate_triples_of_path($form, $valuestr, $id, $su
   $tmpTriples = array();
   $i=0;
 
-  for($i=$sameMax; $i < floor(count($path)/2); $i++) {
-
-    if($subj == "") {
-      $subj = wisski_store_getObj()->wisski_ARCAdapter_delNamespace(wisski_store_makePathTitle(wisski_store_getObj()->wisski_ARCAdapter_addNamespace($path["x$i"])) . wisski_store_getObj()->wisski_Store_getNewUniqueID());
+  
+  // if subj is empty, we need to create 
+  if($subj == "") {
+      $subj = wisski_store_getObj()->wisski_ARCAdapter_delNamespace(wisski_store_makePathTitle(wisski_store_getObj()->wisski_ARCAdapter_addNamespace($path["x$sameMax"])) . wisski_store_getObj()->wisski_Store_getNewUniqueID());
       $trip = array();
       $trip['s'] = $subj;
       $trip['s_type'] = "uri";
       $trip['p'] = wisski_store_getObj()->wisski_ARCAdapter_delNamespace("rdf:type");
-      $trip['o'] = $path["x$i"];
+      $trip['o'] = $path["x$sameMax"];
       $trip['o_type'] = "uri";
       $tmpTriples[] = $trip;
-    }
+  }
+
+
+  for($i=$sameMax; $i < floor(count($path)/2); $i++) {
 
 
     if($obj_x - 1 == $i) {
@@ -1522,7 +1524,6 @@ function _wisski_pathbuilder_generate_triples_of_path($form, $valuestr, $id, $su
     $trip['o_type'] = "literal";
     $trip['o_datatype'] = $range; //wisski_store_getObj()->wisski_ARCAdapter_delNamespace("xsd:string");
     $tmpTriples[] = $trip;
-    
     if($obj != "") 
       $outTriples = array_merge($outTriples, $tmpTriples);
   }        
