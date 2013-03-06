@@ -299,7 +299,16 @@ function wisski_pathbuilder_getText($node) {
   
   $node2 = node_load(arg(1,$text));
 
-  return $node2->body;
+  if (empty($node2->body)) return '';
+  // TEI support
+  if (module_exists('wisski_textproc') && function_exists('wisski_textproc_convert_tei_to_html')) {
+    return wisski_textproc_convert_tei_to_html($node2->body); // transform tei to html
+  } else {
+    return $node2->body;  // normal output
+  }
+  // end TEI support
+  // old:
+  // return $node2->body;
 }
 
 function wisski_pathbuilder_getImages($node) {
@@ -332,6 +341,10 @@ function wisski_pathbuilder_getImages($node) {
       
       if(trim($pic) == "")
         continue;
+        
+      //$pic = rawurlencode($pic);
+
+      $pic = str_replace(' ', '%20', $pic);
 
       $pics = getimagesize($pic);
       if($pics == 0) {
@@ -548,7 +561,7 @@ function wisski_imageprocessing($form, &$form_state) {
 function wisski_pathbuilder_alter_add_submit($form, &$form_state) {
   module_load_include('inc', 'wisski_pathbuilder', 'wisski_pathbuilder');
   
-  upload_node_form_submit(&$form, $form_state);
+  if (module_exists('upload')) upload_node_form_submit(&$form, $form_state);
   
   wisski_imageprocessing($form, $form_state);
   
@@ -562,7 +575,7 @@ function wisski_pathbuilder_alter_edit_submit($form, &$form_state) {
 
   module_load_include('inc', 'wisski_pathbuilder', 'wisski_pathbuilder');
   
-  upload_node_form_submit(&$form, $form_state);
+  if (module_exists('upload')) upload_node_form_submit(&$form, $form_state);
   
   wisski_imageprocessing($form, $form_state);
 
