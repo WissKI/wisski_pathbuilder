@@ -485,7 +485,7 @@ function wisski_pathbuilder_getOptionArray($pathid, $arg2 = FALSE) {
     $row = db_fetch_array($result);
    
     if ($arg2) {
-      $arg2_preg_quote = str_replace('\\', '\\\\', str_replace('"', '\\"', preg_quote($arg2)));
+      $arg2_preg_quote = wisski_store_escape_sparql_literal(wisski_store_escape_sparql_regex($arg2), FALSE);
     } 
    
     if($row['disamb'] > 1) {
@@ -1124,7 +1124,7 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
             $delete .= ($triple .  " . ");
           }
 
-          $delete .= $condition . '. FILTER ( ?out = "' . $value . '" ) }';
+          $delete .= $condition . '. FILTER ( ?out = "' . wisski_store_escape_sparql_literal($value) . '" ) }';
  //         drupal_set_message("I am deleting: " . htmlentities($delete));
           wisski_store_getObj()->wisski_ARCAdapter_getStore()->query($delete);
 //        }
@@ -1385,7 +1385,7 @@ function _wisski_pathbuilder_generate_triples_of_path($form, $valuestr, $id, $su
 
   if($row['disamb'] > 1) {
     if (empty($objIn)) {
-      $sparql = wisski_pathbuilder_get_sparql($id, 'FILTER ( ?out = "' . $valuestr . '" ) ', FALSE, $row['disamb']-1);
+      $sparql = wisski_pathbuilder_get_sparql($id, 'FILTER ( ?out = "' . wisski_store_escape_sparql_literal($valuestr) . '" ) ', FALSE, $row['disamb']-1);
       $disambrows = wisski_store_getObj()->wisski_ARCAdapter_getStore()->query($sparql, 'rows');
       //drupal_set_message("disambrows: " . serialize($disambrows));
     } elseif ($obj_x == -1) {
