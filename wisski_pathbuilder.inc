@@ -2396,10 +2396,15 @@ function wisski_pathbuilder_calculate_group_samepart($groupid) {
 # from here on bug fix by Mark Fichtner
   $outsamepart = array();
   
-  for($i = 0; !empty($samepart['x' . $i]); $i++) {
+  for($i = 0; !empty($samepart['x' . $i]) && !empty($samepart['y' . $i]); $i++) {
     $outsamepart['x' . $i] = $samepart['x' . $i];
     $outsamepart['y' . $i] = $samepart['y' . $i];
   }
+  
+  if(!empty($samepart['x' . $i]))
+    $outsamepart['x' . $i] = $samepart['x' . $i];
+  else
+    unset($outsamepart['y' . ($i-1)]);
   
   if(count($outsamepart) == 0)
     return array();
