@@ -199,7 +199,6 @@ function wisski_form_forward($node) {
     $node->uid = $user->uid;
     $node->name = $user->name;
   }
-
   return drupal_get_form('individual_node_form', $node);
 }
 
@@ -300,21 +299,21 @@ function wisski_pathbuilder_getText($node) {
   
   $node2 = node_load(arg(1,$text));
 
-  return $node2->body;
+  if (empty($node2->body)) return '';
+  // TEI support
+  if (module_exists('wisski_textproc') && function_exists('wisski_textproc_convert_tei_to_html')) {
+    return wisski_textproc_convert_tei_to_html($node2->body); // transform tei to html
+  } else {
+    return $node2->body;  // normal output
+  }
+  // end TEI support
+  // old:
+  // return $node2->body;
 }
 
 function wisski_pathbuilder_getImages($node) {
 
-  if(empty($node))
-    return;
-
-  if(is_object($node))
-    $indiv = $node->title;
-  else
-    $indiv = $node;
-
-  if(empty($indiv))
-    return;
+  $indiv = $node->title;
 
   $group = wisski_pathbuilder_getGroupIDForIndividual(wisski_store_getObj()->wisski_ARCAdapter_delNamespace($indiv), TRUE);
   
@@ -333,7 +332,7 @@ function wisski_pathbuilder_getImages($node) {
   
   foreach($imagegroups as $imagegroup) {
   
-    $condition = ("FILTER ( ?x0 = <" . wisski_store_getObj()->wisski_ARCAdapter_delNamespace($indiv). "> ) ");
+    $condition = ("FILTER ( ?x0 = <" . wisski_store_getObj()->wisski_ARCAdapter_delNamespace($node->title). "> ) ");
     $sparql = wisski_pathbuilder_get_sparql($imagegroup, $condition);
 
     $rows =  wisski_store_getObj()->wisski_ARCAdapter_getStore()->query($sparql, 'rows');
@@ -342,7 +341,7 @@ function wisski_pathbuilder_getImages($node) {
       
       if(trim($pic) == "")
         continue;
-      
+        
       //$pic = rawurlencode($pic);
 
       $pic = str_replace(' ', '%20', $pic);
@@ -432,7 +431,6 @@ function wisski_pathbuilder_form_individual_node_form_alter(&$form, &$form_state
   
   } else {
     $node = node_load($form['nid']['#value']);
-//    print_r("held!");
 //    drupal_set_message("title is: " . serialize($node));
     $groupid = wisski_pathbuilder_getGroupIDForIndividual(wisski_store_getObj()->wisski_ARCAdapter_delNamespace($node->title));
     $newform = wisski_pathbuilder_template_edit($form_state, $node);
@@ -448,7 +446,7 @@ function wisski_pathbuilder_form_individual_node_form_alter(&$form, &$form_state
   foreach ($todelete as $key) {
     unset($form[$key]);
   }
-
+  
   foreach($newform as $key => $value) {
     $newform[$key]['#weight'] = -100;
     break;
@@ -457,15 +455,14 @@ function wisski_pathbuilder_form_individual_node_form_alter(&$form, &$form_state
   $oldform = $form;
   
   $form = $newform + $oldform; 
-    
+  
   return;
   
 }
 
 function wisski_pathbuilder_form_alter(&$form, &$form_state, $form_id) {
-
   module_load_include('inc', 'node', 'node.pages');
-
+  
   // add?
   if($form_id == "individual_node_form" && !$form['nid']['#value']) {
     $killhandlers = array("wisski_valuesToStorage", "wisski_saveInstanceOfState", "wisski_savePropertyState", "wisski_node_form_final_submit");
@@ -500,6 +497,7 @@ function wisski_pathbuilder_form_alter(&$form, &$form_state, $form_id) {
 
 function wisski_imageprocessing($form, &$form_state) {
   module_load_include('inc', 'wisski_pathbuilder', 'wisski_pathbuilder');
+  module_load_include('inc', 'node', 'node.pages');
   
   if($form_state['values']['files']) {
     foreach($form_state['values']['files'] as $file) {
@@ -565,10 +563,9 @@ function wisski_imageprocessing($form, &$form_state) {
 }
 
 function wisski_pathbuilder_alter_add_submit($form, &$form_state) {
-
   module_load_include('inc', 'wisski_pathbuilder', 'wisski_pathbuilder');
   module_load_include('module', 'upload', 'upload');  
-  upload_node_form_submit(&$form, $form_state);
+  if (module_exists('upload')) upload_node_form_submit(&$form, $form_state);
   
   wisski_imageprocessing($form, $form_state);
   
@@ -579,11 +576,9 @@ function wisski_pathbuilder_alter_add_submit($form, &$form_state) {
 }
 
 function wisski_pathbuilder_alter_edit_submit($form, &$form_state) {
-
   module_load_include('inc', 'wisski_pathbuilder', 'wisski_pathbuilder');
   module_load_include('module', 'upload', 'upload');
-  
-  upload_node_form_submit(&$form, $form_state);
+  if (module_exists('upload')) upload_node_form_submit(&$form, $form_state);
   
   wisski_imageprocessing($form, $form_state);
 
