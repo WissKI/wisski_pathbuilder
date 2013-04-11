@@ -346,14 +346,52 @@ function wisski_pathbuilder_getImages($node) {
       $factorx = variable_get("wisski_pathbuilder_targetImageWidth", 150)/$pics[0];
 
       $factor = $factorx;
-      $imagestr .= '<a class="th" href="javascript:void(0);" title="' . $pic . '" onclick="window.open(\'' .
-                   $pic . '\', \'\', \'height=' . $pics[1] . ',width=' . $pics[0] . '\');">' .
-                   '<img src="' . $pic . '" alt="' . $pic . '"/></a>'; //width="' . round($pics[0]*$factor) . '"></a>';
-                                                            
+//      $imagestr .= '<a class="th" href="javascript:void(0);" title="' . $pic . '" onclick="window.open(\'' .
+//                   $pic . '\', \'\', \'height=' . $pics[1] . ',width=' . $pics[0] . '\');">' .
+//                   '<img src="' . $pic . '" alt="' . $pic . '"/></a>'; //width="' . round($pics[0]*$factor) . '"></a>';
+
+      $thumbdir = "/cache/";
+      $thumbname = md5($pic);
+      $thumbfile = file_directory_path() . $thumbdir . $thumbname . '_thumb.jpg';
+      $picfile =  file_directory_path() . $thumbdir . $thumbname . '.jpg';
+      
+      if(!file_exists($thumbfile)) {
+
+        $img = imagecreatefromjpeg($pic);
+        $width = imagesx( $img );
+        $height = imagesy( $img );
+      
+        $new_width = 180 ;
+        $new_height = floor( $height * ( $new_width / $width ) );
+      
+        $tmp_img = imagecreatetruecolor( $new_width, $new_height );
+        
+        imagecopyresized( $tmp_img, $img, 0, 0, 0, 0, $new_width, $new_height, $width, $height );
+      
+        imagejpeg( $tmp_img, $thumbfile );
+    
+      }
+      
+      if(!file_exists($picfile)) {
+        $fh = fopen($pic, "rb");
+        $fw = fopen(realpath(".") . '/' . $picfile, "w+");
+        if($fh) {
+          while(!feof($fh)) {
+            fwrite($fw, fread($fh, 1024 * 8 ), 1024 * 8 );
+          }
+        }
+      }
+        
+      global $base_path;
+      
+      $imagestr .= '<li><a href="' . $base_path . $picfile . '"><img src="' . $base_path . $thumbfile . '"/></a></li>';                                                        
     }
   }
 
-  return $imagestr;
+  if(!empty($imagestr))
+    return '<ul class="clearing-thumbs" data-orbit data-clearing>' . $imagestr . '</ul>';
+  else
+    return "";
 }
 
 function wisski_pathbuilder_getCoordinates($node) {
