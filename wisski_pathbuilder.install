@@ -23,6 +23,27 @@ function wisski_pathbuilder_uninstall() {
  * Implementation of hook_schema().
  */
 function wisski_pathbuilder_schema() {
+  $schema['wisski_title_cache'] = array(
+    'description' => 'This table caches the rather complex titles of all nodes.',
+    'fields' => array(
+      'uri' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => true,
+        'description' => 'The uri of the node.',
+      ),
+
+      'title' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => true,
+        'description' => 'The title of the node.',
+      ),
+    ), 
+    'primary key' => array('uri'),
+
+  );
+
   $schema['wisski_template'] = array(
     'description' => 'The table that stores the owl-templates for the wisski project.',
     'fields' => array(

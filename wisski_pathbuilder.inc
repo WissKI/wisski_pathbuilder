@@ -130,6 +130,9 @@ function wisski_pathbuilder_getEnabledInternaGroups() {
  * @author Mark Fichtner
  */
 function wisski_pathbuilder_getGroupsForConcept($con, $is_individual = TRUE, $type = 1) {
+
+  if(empty($con))
+    return null;
   
   $result = db_query("SELECT * FROM {wisski_template} WHERE `is_group` = 1");
 
@@ -748,7 +751,9 @@ function wisski_pathbuilder_getInternaGroupIDForConcept($type) {
  * @author Mark Fichtner
  */
 function wisski_pathbuilder_getGroupIDForIndividual($ind, $type = 1) {
-  if(!$ind || !isset($ind)) {
+
+  if(!$ind || empty($ind)) {
+    print_r(serialize(debug_backtrace()));
     drupal_set_message("no individual supplied.", "error");
     return;
   }
@@ -876,6 +881,11 @@ function wisski_pathbuilder_get_group_samepart_data($groupid, $subjIn = NULL) {
   $samepart = _wisski_pathbuilder_calculate_group_samepart($groupid);
 
   if(empty($subjIn)) {
+    $arg = arg(1);
+
+    if(empty($arg))
+      return;
+
     $node = node_load(arg(1));
 
     $types = wisski_store_getObj()->wisski_ARCAdapter_getObjForSubjPred(wisski_store_getObj()->wisski_ARCAdapter_delNamespace($node->title), wisski_store_getObj()->wisski_ARCAdapter_delNamespace("rdf:type"));
@@ -884,8 +894,8 @@ function wisski_pathbuilder_get_group_samepart_data($groupid, $subjIn = NULL) {
   }
   $pos = -1;
 
-//  drupal_set_message("type: " . serialize($types));
-//  drupal_set_message("sp: " . serialize($samepart));
+  //drupal_set_message("type: " . serialize($types));
+  //drupal_set_message("sp: " . serialize($samepart));
 //  drupal_set_message(serialize(debug_backtrace()));
 
   for($i=0; $i<=(floor(count($samepart)/2)); $i++) {
@@ -992,8 +1002,13 @@ function wisski_pathbuilder_template_edit_submit($form, &$form_state) {
   $paths = unserialize($form_state['wisskiValues']['paths']);
 
   wisski_pathbuilder_recursive_edit_submit($form, $form_state['values'], $groupid, $paths, $condition, $old_values['values']['form']);
+  
+  $displaytitle = _wisski_pathbuilder_generateGroupName($node->title, $groupid);
+  db_query("UPDATE {wisski_title_cache} SET `title` = '" . mysql_real_escape_string($displaytitle) . "' WHERE `uri` = '" . mysql_real_escape_string(wisski_store_getObj()->wisski_ARCAdapter_delNamespace($node->title)) . "'");
+  
   unset($form_state['storage']);
   $form_state['redirect'] = wisski_store_getObj()->wisski_ARCAdapter_delNamespace($node->title);
+  
   return;
 
 }
@@ -1001,6 +1016,7 @@ function wisski_pathbuilder_template_edit_submit($form, &$form_state) {
 function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, $paths, $condition, $ov_pointer, $main_subject = "", $parentpath = NULL) {
   //dpm(func_get_args());
   //dpm($fs_pointer);
+
   $result = db_query("SELECT * FROM {wisski_template} WHERE `id` = $groupid");
   
   $my_group = db_fetch_array($result);
@@ -1097,7 +1113,7 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
 
       // Delete the old ones
         foreach($old_values as $key => $value) {
-  //        drupal_set_message("delete old ones!");
+//          drupal_set_message("delete old ones!");
           if($value == $values[$key] || empty($value))
             continue;
 //          drupal_set_message("really delete: " . $value);
@@ -1113,7 +1129,8 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
 
           $sparql = wisski_pathbuilder_get_sparql($row['id'], $condition, TRUE, 0, FALSE);
           $data = wisski_pathbuilder_get_group_samepart_data($groupid);
-
+//          drupal_set_message("data is: " . serialize($data));
+//          drupal_set_message("groupid : " . serialize($groupid));
       
           if($row['disamb'] > 0) 
             $delete = ("DELETE { " . $sparql['triples'][1+(($row['disamb'] - 2) * 2) ] . " . } WHERE { ");
@@ -1125,7 +1142,7 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
           }
 
           $delete .= $condition . '. FILTER ( ?out = "' . $value . '" ) }';
- //         drupal_set_message("I am deleting: " . htmlentities($delete));
+//          drupal_set_message("I am deleting: " . htmlentities($delete));
           wisski_store_getObj()->wisski_ARCAdapter_getStore()->query($delete);
 //        }
         }
@@ -1533,7 +1550,7 @@ function _wisski_pathbuilder_generate_triples_of_path($form, $valuestr, $id, $su
 function wisski_pathbuilder_template_view($form_state, $node, &$groupid = -1, $samepart = array()) {
 //  drupal_set_message(serialize($form_state));
 //  drupal_set_message(serialize($node));
-
+  
   if($groupid == -1) {
     $groupid = wisski_pathbuilder_getGroupIDForIndividual(wisski_store_getObj()->wisski_ARCAdapter_delNamespace($node->title));
   }
@@ -2221,7 +2238,7 @@ function wisski_pathbuilder_build_group($form_state, $parentID, $treetype = 2) {
   
   //$tmp = module_invoke_all('form', $form_state);
 
-//  drupal_set_message(serialize($tmp));
+  //drupal_set_message(serialize("I'm here!"));
 
 /*
   unset($tmp['buttons']);
@@ -2277,13 +2294,13 @@ global $user;
 
 //  return drupal_get_form('individual_node_form', $node);
 //  return drupal_render($form);
-
+//  drupal_set_message("I made out of it: " . serialize($form));
   return $form;
 
 }
 
 function wisski_pathbuilder_build_group_submit($form, &$form_state) {
-//  drupal_set_message("submit!!!");
+
   $groupid = $form_state['values']['group'];
 
 /*
@@ -2615,11 +2632,11 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
   
   drupal_add_js( 'sites/all/modules/wisski_pathbuilder/wisski_pathbuilder.js');
   $vars = variable_get("wisski_pathbuilder_templateids", array());
-  //drupal_set_message("build with formstate: " . serialize($form_state));
+  //print_r("build with formstate: " . serialize($form_state));
   global $user;
 
   //drupal_set_message("parent id is: " . $parentID);
-
+  
   $resultgroup = db_query("SELECT * FROM {wisski_template} WHERE `is_group` = 1 AND `enabled` = 1 AND `id` = $parentID");
   $resultfields = db_query("SELECT * FROM {wisski_template} WHERE `enabled` = 1 AND `group_id` = " . $parentID . " ORDER BY `weight` ASC");
 
@@ -2668,7 +2685,7 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
     //$wrapper = &$wrapperarr[$key]; 
     //$wrapper .= '<div id="wki-collector">';
     if($input == 0) {
-    
+          
       $sparql = wisski_pathbuilder_get_sparql($parentID, $sparqlcondition);
     
       $multigroup = wisski_store_getObj()->wisski_ARCAdapter_getStore()->query($sparql, 'rows');
@@ -2677,7 +2694,7 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
       $wrapper .= '<fieldset class="collapsible wki-fieldset-view"><legend>' . $grouparr['name'] . '</legend>'; // <- Schwule schreibweise :P
     } else { //if ($input == 2) { // edit
 //      drupal_set_message($grouparr['fieldtype']);
-
+    
       if($grouparr['fieldtype'] != "ontogroup") {
         $form['form'][$grouparr['id']] = array(
           '#collapsed' => FALSE,
@@ -2688,11 +2705,11 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
           '#tree' => TRUE,
         );
         $base = &$form['form'][$grouparr['id']];
-        $form_state = $form_state[$grouparr['id']];        
-        $q = wisski_pathbuilder_get_sparql($grouparr['id'], $sparqlcondition);
-        $out = wisski_store_getObj()->wisski_ARCAdapter_getStore()->query($q);
-        
+        $form_state = $form_state[$grouparr['id']];
+                
         if($input == 2) {
+          $q = wisski_pathbuilder_get_sparql($grouparr['id'], $sparqlcondition);
+          $out = wisski_store_getObj()->wisski_ARCAdapter_getStore()->query($q);
           $results = $out['result']['rows'];
 
           $grp_val = false;
@@ -3928,7 +3945,7 @@ function wisski_pathbuilder_edit_item(&$form_state, $type, $item, $menu) {
   return $form;
 }
 
-function wisski_pathbuilder_generateGroupName($title, $groupid, $data = NULL) {
+function _wisski_pathbuilder_generateGroupName($title, $groupid, $data = NULL) {
 
   if(empty($data)) {
     $result = db_query('SELECT * FROM {wisski_template} WHERE `id` = ' . $groupid);
@@ -3938,26 +3955,60 @@ function wisski_pathbuilder_generateGroupName($title, $groupid, $data = NULL) {
   if($data['short_name'] == "")
     return $title;
 
-  preg_match_all('/![0-9]*/',$data['short_name'], $matches);
-
+  preg_match_all('/(\{.*?){0,1}(![0-9]*)(\}.*?){0,1}/',$data['short_name'], $matches);
+//  drupal_set_message(serialize($matches));
   $out = $data['short_name'];
 
   $samepart = _wisski_pathbuilder_calculate_group_samepart($groupid);
 
-  foreach($matches[0] as $match) {
+  foreach($matches[2] as $key => $match) {
   
-    $sparqlcondition = ("FILTER ( ?x" . (floor(count($samepart)/2)) . " = <" . wisski_store_getObj()->wisski_ARCAdapter_delNamespace($title). "> ) ");
+    $sparqlcondition = ("FILTER ( ?x" . (floor(count($samepart)/2)) . " = <" . wisski_store_getObj()->wisski_ARCAdapter_delNamespace($title). "> )");
 
     $sparql = wisski_pathbuilder_get_sparql(substr($match, 1), $sparqlcondition);
 
     $sprows = wisski_store_getObj()->wisski_ARCAdapter_getStore()->query($sparql, 'row');
-
-    $out = str_replace($match, $sprows['out'], $out);
-
+  
+    if(!empty($sprows['out'])) {
+      if(!empty($matches[1][$key])) {
+        $mymatch = str_replace($match, $sprows['out'], $matches[0][$key]); 
+        $out = str_replace($matches[0][$key], substr($mymatch, 1, -1), $out);
+      } else
+        $out = str_replace($matches[0][$key], $sprows['out'], $out);
+    } else
+      $out = str_replace($matches[0][$key], "", $out);
   }
 
   if(trim($out) == "")
     return $title; 
+
+  return $out;      
+}
+
+
+function wisski_pathbuilder_generateGroupName($title, $groupid, $data = NULL) {
+  global $base_url;
+  $oldtitle = $title;
+  if(!strpos($base_url, $title))
+    $title = wisski_store_getObj()->wisski_ARCAdapter_delNamespace($title);
+
+  $result = db_query("SELECT `title` FROM {wisski_title_cache} WHERE `uri` = '" . $title . "'");
+  
+  $title_from_db = db_fetch_array($result);
+  
+  if(empty($title_from_db) || empty($title_from_db['title'])) {
+    $out = _wisski_pathbuilder_generateGroupName(wisski_store_getObj()->wisski_ARCAdapter_addNamespace($title), $groupid, $data);
+    
+    if(!empty($title_from_db) && empty($title_from_db['title']))
+      db_query("UPDATE {wisski_title_cache} SET `title` = '" . mysql_real_escape_string($out) . "' WHERE `uri` = '" . mysql_real_escape_string($title) . "'");
+    else
+      db_query("INSERT INTO {wisski_title_cache} VALUES ('" . mysql_real_escape_string($title) . "', '" . mysql_real_escape_string($out) . "')");
+  } else {
+    $out = $title_from_db['title'];
+  }
+
+  if(trim($out) == "")
+    return $oldtitle; 
 
   return check_plain($out);      
 }
@@ -3986,12 +4037,19 @@ function wisski_pathbuilder_edit_item_submit($form, &$form_state) {
   foreach($item['type'] as $typeitem => $yes)
     if($yes)
       $type = $type * $typeitem;
+      
+  $result = db_query("SELECT `short_name` FROM {wisski_template} WHERE `id` = %d", $id);
 
 
   db_query("UPDATE {wisski_template} SET `name` = '%s', `description` = '%s', `path_array` = '%s', " .
       "`short_name` = '%s', `disamb` = %d, `datatype_property` = '%s', `mandatory` = %d, `fieldtype` = '%s', `type` = %d WHERE `id` = %d", 
       $item['name'], $item['description'], serialize($path), $item['short_name'], $item['disamb'], 
       $datatypeproperty, $item['mandatory'], $item['fieldtype'], $type, $id);
+
+  $sn = db_fetch_array($result);
+  
+  if(!empty($item['short_name']) && $sn['short_name'] != $item['short_name'])
+    db_query("TRUNCATE TABLE {wisski_title_cache}");
 
   $form_state['redirect'] = 'admin/settings/wisski/pathbuilder';
 
