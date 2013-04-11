@@ -24,7 +24,7 @@ function wisski_pathbuilder_perm() {
 
 
 function wisski_pathbuilder_group_load($menu) {
-  $result = db_query("SELECT * FROM {wisski_template} WHERE `is_group` = 1 AND `enabled` = 1 AND `name` = '$menu'");
+  $result = db_query("SELECT * FROM {wisski_template} WHERE is_group = 1 AND enabled = 1 AND name = '$menu'");
     
   $arr = db_fetch_array($result);
       
@@ -300,7 +300,16 @@ function wisski_pathbuilder_getText($node) {
   
   $node2 = node_load(arg(1,$text));
 
-  return $node2->body;
+  if (empty($node2->body)) return '';
+  // TEI support
+  if (module_exists('wisski_textproc') && function_exists('wisski_textproc_convert_tei_to_html')) {
+    return wisski_textproc_convert_tei_to_html($node2->body); // transform tei to html
+  } else {
+    return $node2->body;  // normal output
+  }
+  // end TEI support
+  // old:
+  // return $node2->body;
 }
 
 function wisski_pathbuilder_getImages($node) {
@@ -500,6 +509,7 @@ function wisski_pathbuilder_form_alter(&$form, &$form_state, $form_id) {
 
 function wisski_imageprocessing($form, &$form_state) {
   module_load_include('inc', 'wisski_pathbuilder', 'wisski_pathbuilder');
+  module_load_include('inc', 'node', 'node.pages');
   
   if($form_state['values']['files']) {
     foreach($form_state['values']['files'] as $file) {
@@ -568,7 +578,9 @@ function wisski_pathbuilder_alter_add_submit($form, &$form_state) {
 
   module_load_include('inc', 'wisski_pathbuilder', 'wisski_pathbuilder');
   module_load_include('module', 'upload', 'upload');  
-  upload_node_form_submit(&$form, $form_state);
+
+  if (module_exists('upload')) upload_node_form_submit(&$form, $form_state);
+
   
   wisski_imageprocessing($form, $form_state);
   
@@ -579,11 +591,11 @@ function wisski_pathbuilder_alter_add_submit($form, &$form_state) {
 }
 
 function wisski_pathbuilder_alter_edit_submit($form, &$form_state) {
-
   module_load_include('inc', 'wisski_pathbuilder', 'wisski_pathbuilder');
   module_load_include('module', 'upload', 'upload');
-  
-  upload_node_form_submit(&$form, $form_state);
+
+  if (module_exists('upload')) upload_node_form_submit(&$form, $form_state);
+
   
   wisski_imageprocessing($form, $form_state);
 
