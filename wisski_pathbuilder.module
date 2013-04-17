@@ -362,6 +362,7 @@ function wisski_pathbuilder_getImages($node) {
         continue; 
       }
 
+/*
       $factorx = variable_get("wisski_pathbuilder_targetImageWidth", 150)/$pics[0];
 
       $factor = $factorx;
@@ -403,7 +404,95 @@ function wisski_pathbuilder_getImages($node) {
         
       global $base_path;
       
-      $imagestr .= '<li><a href="' . $base_path . $picfile . '"><img src="' . $base_path . $thumbfile . '"/></a></li>';                                                        
+      $imagestr .= '<li><a href="' . $base_path . $picfile . '"><img src="' . $base_path . $thumbfile . '"/></a></li>';                                                       
+      */
+      
+      if(module_exists("imagecache")) {
+        $newname = md5($pic);
+        //drupal_set_message(serialize($pic));
+        preg_match('/\.(jpg|jpeg|png|gif|bmp|tif|tiff)$/i', $pic, $extension);
+      
+        $extension = $extension[1];
+      
+        //drupal_set_message("ext is: " . serialize($extension));
+        
+        $newfile = $newname . '_orig.' . $extension;
+        
+        $orig = imagecache_create_path('wisski_original', $newfile);
+        $preset_orig = imagecache_preset_by_name('wisski_original');
+        //drupal_set_message(serialize($orig));
+        
+        // it is not locally available
+        if(!realpath($pic)) {
+          // if it is not there already, get it
+          if(!file_exists($newfile)) {
+            $fh = fopen($pic, "rb");
+            $fw = fopen($orig, "w+");
+            
+            if($fh) {
+              while(!feof($fh)) {
+                fwrite($fw, fread($fh, 1024 * 8 ), 1024 * 8 );
+              }
+            }
+
+          } else { // it is already there, just work with it!
+          }
+        } else { // it is locally available
+          // work with the local copy  
+        }
+        
+        if(strcasecmp($extension, "tif") == 0 || strcasecmp($extension, "tiff") == 0) {
+          //drupal_set_message(serialize($orig));
+          
+          $image = imageapi_image_open($orig);
+          
+          //drupal_set_message(serialize($image));
+                    
+          if ($image->info['mime_type'] && $image->toolkit == 'imageapi_imagemagick') {
+            //get extension
+            $current_path = pathinfo($image->source);
+            $rsr = $image->source;
+            $ext = $current_path['extension'];
+
+            //drupal_set_message("ext: " . $ext);
+
+            $destination = str_replace($ext, 'jpg', $image->source);
+            
+            $command = escapeshellarg($rsr) .' '. escapeshellarg($destination);
+            if (0 != _imageapi_imagemagick_convert_exec($command, $output, $errors)) {
+              return FALSE;
+            }
+  //return file_exists($destination);
+            $orig = $destination;
+            $extension = "jpg";
+          }
+        }
+        
+        // now $orig should point to the original file
+        
+        $presetname = "wisski_thumbnail";      
+        $preset = imagecache_preset_by_name($presetname);
+
+        $dst = imagecache_create_path($presetname, $newname . '.' . $extension);
+
+        if (file_exists($dst) || imagecache_build_derivative($preset['actions'], $orig, $dst)) {
+          global $base_path;
+          if (file_exists($orig)) {
+            $imagestr .= '<li><a href="' . $base_path . $orig . '"><img src="' . $base_path . $dst . '"/></a></li>';
+          } else {          
+            $imagestr .= '<li><a href="' . $base_path . $dst . '"><img src="' . $base_path . $dst . '"/></a></li>';
+          }
+        } else {
+          $imagestr .= '<li><a href="' . $pic . '"><img src="' . $pic . '"/></a></li>';
+        }
+      } else {
+        $factorx = variable_get("wisski_pathbuilder_targetImageWidth", 150)/$pics[0];
+
+        $factor = $factorx;
+      $imagestr .= '<li><a class="th" href="javascript:void(0);" title="' . $pic . '" onclick="window.open(\'' .
+                   $pic . '\', \'\', \'height=' . $pics[1] . ',width=' . $pics[0] . '\');">' .
+                   '<img src="' . $pic . '" alt="' . $pic . '"/></a></li>'; //width="' . round($pics[0]*$factor) . '"></a>';
+      }
     }
   }
 
@@ -411,6 +500,31 @@ function wisski_pathbuilder_getImages($node) {
     return '<ul class="clearing-thumbs" data-orbit data-clearing>' . $imagestr . '</ul>';
   else
     return "";
+}
+
+function wisski_pathbuilder_imagecache_default_presets() {
+  $presets = array();
+  $presets['wisski_thumbnail'] = array (
+    'presetname' => 'wisski_thumbnail',
+    'actions' => array(
+      0 => array(
+        'weight' => '0',
+        'module' => 'imagecache',
+        'action' => 'imagecache_scale',
+        'data' => array(
+          'width' => '180',
+        ),
+      ),
+    ),
+  );
+  
+    $presets['wisski_original'] = array (
+    'presetname' => 'wisski_original',
+    'actions' => array(
+    ),
+  );
+  
+  return $presets;
 }
 
 function wisski_pathbuilder_getCoordinates($node) {
@@ -551,7 +665,7 @@ function wisski_imageprocessing($form, &$form_state) {
   
   if($form_state['values']['files']) {
     foreach($form_state['values']['files'] as $file) {
-      if(preg_match('/(\.png|\.jpg|\.jpeg|\.gif)$/i', $file['filename'])) {
+      if(preg_match('/(\.png|\.jpg|\.jpeg|\.gif|\.tif|\.tiff)$/i', $file['filename'])) {
 
         $allgroups = wisski_pathbuilder_getAllMembers($form_state['values']['group'], FALSE);
         
