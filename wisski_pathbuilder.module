@@ -24,7 +24,10 @@ function wisski_pathbuilder_perm() {
 
 
 function wisski_pathbuilder_group_load($menu) {
-  $result = db_query("SELECT * FROM {wisski_template} WHERE is_group = 1 AND enabled = 1 AND name = '$menu'");
+  if(is_numeric($menu))
+    $result = db_query("SELECT * FROM {wisski_template} WHERE is_group = 1 AND enabled = 1 AND id = $menu");
+  else
+    $result = db_query("SELECT * FROM {wisski_template} WHERE is_group = 1 AND enabled = 1 AND name = '$menu'");
     
   $arr = db_fetch_array($result);
       

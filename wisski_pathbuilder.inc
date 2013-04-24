@@ -394,14 +394,12 @@ function wisski_pathbuilder_getOptionArray($pathid, $arg2 = FALSE) {
     foreach($auths as $auth) {
         
         $local_limit = $limit - count($out);
-
         if ($h_term) {
           $uris = wisski_vocab_ctrl_lookup('labels', $auth, NULL, $h_term, $local_limit, $offset, 'exact', 'normal', TRUE);
         } else {
           $uris = wisski_vocab_ctrl_lookup('labels', $auth, NULL, $arg2, $local_limit, $offset, 'starts', 'normal', TRUE);  // viel schneller!
  //         $uris = wisski_vocab_ctrl_lookup('labels', $auth, NULL, $arg2, $local_limit, $offset, 'contains');
         }
-//        drupal_set_message(serialize($uris));
 //return;        
         if (!$uris) {
           continue;
@@ -3469,7 +3467,7 @@ function _wisski_pathbuilder_add_groups_to_menu() {
   foreach($data as $arr) {
 
     $item = array();
-    $item['link_path'] = ("node/add/individual/" . $arr['name']);
+    $item['link_path'] = ("node/add/individual/" . $arr['id']);
     $item['link_title'] = $arr['name'];
     $item['menu_name'] = isset($oldlinks[$arr['id']]['menu_name']) ? $oldlinks[$arr['id']]['menu_name'] : "navigation";
     $item['weight'] = $arr['weight'];
