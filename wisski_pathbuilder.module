@@ -248,6 +248,9 @@ function wisski_pathbuilder_block($op = 'list', $delta = 0, $edit = array()) {
     if(!isset($node))
       return;
       
+    if(!user_access('wisski access templateView'))
+      return;
+      
     if ($delta == 0) {
       
       $block['subject'] = t('Templated Content');
