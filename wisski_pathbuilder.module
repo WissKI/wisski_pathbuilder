@@ -365,8 +365,6 @@ function wisski_pathbuilder_getImages($node, $images = 0) {
   
   if($images > 0) 
     $total_sparql .= " LIMIT " . $images;
-  
-  drupal_set_message(serialize($total_sparql));
 
   $rows =  wisski_store_getObj()->wisski_ARCAdapter_getStore()->query($total_sparql, 'rows');
   foreach($rows as $pic) {
