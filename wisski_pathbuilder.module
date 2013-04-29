@@ -363,7 +363,7 @@ function wisski_pathbuilder_getImages($node, $images = 0) {
       if($counter < count($imagegroups))
         $total_sparql .= " UNION ";
     }
-  } else {
+  } else if(count($imagegroups) == 1) {
     foreach($imagegroups as $imagegroup) {
       $total_sparql = wisski_pathbuilder_get_sparql($imagegroup, $condition);
     }
@@ -371,6 +371,9 @@ function wisski_pathbuilder_getImages($node, $images = 0) {
   
   if($images > 0) 
     $total_sparql .= " LIMIT " . $images;
+
+  if(empty($total_sparql))
+    return;
 
   $rows =  wisski_store_getObj()->wisski_ARCAdapter_getStore()->query($total_sparql, 'rows');
 
@@ -389,6 +392,9 @@ function wisski_pathbuilder_getImages($node, $images = 0) {
       // get the extension of the file from the url
       preg_match('/\.(jpg|jpeg|png|gif|bmp|tif|tiff)$/i', $pic, $extension);
       $extension = $extension[1];
+
+      if(empty($extension)) // assume jpg if we don't know
+        $extension = 'jpg';
 
       // file name for the local copy of the original
       $newfile = $newname . '_orig.' . $extension;
@@ -414,6 +420,7 @@ function wisski_pathbuilder_getImages($node, $images = 0) {
           }
 
         } else { // it is already there, just work with it!
+          $orig = realpath($pic);
         }
       } else { // it is locally available
         // work with the local copy  
@@ -450,22 +457,22 @@ function wisski_pathbuilder_getImages($node, $images = 0) {
           }
         }
       }
-
+      
       // now $orig should point to the original file
       $presetname = "wisski_thumbnail";      
       $preset = imagecache_preset_by_name($presetname);
 
       $dst = imagecache_create_path($presetname, $newname . '.' . $extension);
-
-      if (file_exists($dst) || imagecache_build_derivative($preset['actions'], $orig, $dst)) {
-        
+      
+      if (is_file($dst) || @imagecache_build_derivative($preset['actions'], $orig, $dst)) {
         global $base_path;
-        if (file_exists($orig)) {
+        if (is_file($orig)) {
           $imagestr .= '<li><a href="' . $base_path . $orig . '"><img src="' . $base_path . $dst . '"/></a></li>';
         } else {          
           $imagestr .= '<li><a href="' . $base_path . $dst . '"><img src="' . $base_path . $dst . '"/></a></li>';
         }
       } else {
+	drupal_set_message("The image with URL " . $pic . " could not be downloaded. Probably the link is wrong.", "error");
         $imagestr .= '<li><a href="' . $pic . '"><img src="' . $pic . '"/></a></li>';
       }
     } else {
