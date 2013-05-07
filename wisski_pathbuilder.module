@@ -369,11 +369,11 @@ function wisski_pathbuilder_getImages($node, $images = 0) {
     }
   }
   
-  if($images > 0) 
-    $total_sparql .= " LIMIT " . $images;
-
   if(empty($total_sparql))
     return;
+  
+  if($images > 0) 
+    $total_sparql .= " LIMIT " . $images;
 
   $rows =  wisski_store_getObj()->wisski_ARCAdapter_getStore()->query($total_sparql, 'rows');
 
@@ -402,11 +402,14 @@ function wisski_pathbuilder_getImages($node, $images = 0) {
       // get the path to it
       $orig = imagecache_create_path('wisski_original', $newfile);
       $preset_orig = imagecache_preset_by_name('wisski_original');
-      
+
+      global $base_url;
+
       // if it is not there already, get it
       if(!is_file($orig)) {
+        $localpath = str_replace($base_url . '/', "", $pic);        
         // // it is not locally available
-        if(!realpath($pic)) {
+        if(!realpath($localpath)) {
           $fh = @fopen($pic, "rb");
            
           if($fh) {
@@ -420,7 +423,7 @@ function wisski_pathbuilder_getImages($node, $images = 0) {
           }
 
         } else { // it is already there, just work with it!
-          $orig = realpath($pic);
+          $orig = realpath($localpath);
         }
       } else { // it is locally available
         // work with the local copy  
@@ -463,7 +466,7 @@ function wisski_pathbuilder_getImages($node, $images = 0) {
       $preset = imagecache_preset_by_name($presetname);
 
       $dst = imagecache_create_path($presetname, $newname . '.' . $extension);
-      
+
       if (is_file($dst) || @imagecache_build_derivative($preset['actions'], $orig, $dst)) {
         global $base_path;
         if (is_file($orig)) {
