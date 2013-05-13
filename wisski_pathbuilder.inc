@@ -1793,7 +1793,8 @@ function wisski_pathbuilder_path_view($form_state, $node) {
       if($parentid != 0) 
         $parentid = wisski_pathbuilder_check_parent($parentid, $xmldoc);
       
-      if(empty(html_entity_decode((string)$path->uuid)))
+      $uuid = html_entity_decode((string)$path->uuid);
+      if(empty($uuid))
         $path->uuid = wisski_get_uid();
     
       $result = db_query("SELECT * FROM {wisski_template} WHERE uuid = '" . html_entity_decode((string)$path->uuid) . "'");
