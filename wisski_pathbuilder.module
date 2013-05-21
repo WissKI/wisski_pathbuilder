@@ -410,8 +410,8 @@ function wisski_pathbuilder_getImages($node, $images = 0) {
 
       // if it is not there already, get it
       if(!is_file($orig)) {
-        $localpath = str_replace($base_url . '/', "", $pic);        
-        // // it is not locally available
+        $localpath = str_replace($base_url . '/', "", $pic);
+        // it is not locally available
         if(!realpath($localpath)) {
           $fh = @fopen($pic, "rb");
            
@@ -426,7 +426,7 @@ function wisski_pathbuilder_getImages($node, $images = 0) {
           }
 
         } else { // it is already there, just work with it!
-          $orig = realpath($localpath);
+          $orig = $localpath;
         }
       } else { // it is locally available
         // work with the local copy  
@@ -443,7 +443,7 @@ function wisski_pathbuilder_getImages($node, $images = 0) {
         } else { // convert it
           
           $image = imageapi_image_open($orig);
-                    
+          
           if ($image->info['mime_type'] && $image->toolkit == 'imageapi_imagemagick') {
 
             //get extension
