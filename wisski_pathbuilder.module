@@ -319,8 +319,11 @@ function wisski_pathbuilder_getText($node) {
 }
 
 function wisski_pathbuilder_getImages($node, $images = 0) {
-
+  
   if(empty($node))
+    return;
+  
+  if(is_numeric($node) && $node->type != "individual")
     return;
 
   if(is_object($node))

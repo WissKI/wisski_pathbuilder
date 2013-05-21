@@ -1963,7 +1963,7 @@ function wisski_pathbuilder_path_view($form_state, $node) {
  * @return A string suitable for sparql-querying if not triplewise, else an array.
  * @author Mark Fichtner
  */
-function wisski_pathbuilder_get_sparql($id, $conditions = "", $triplewise = FALSE, $startpoint = 0, $inverse = TRUE) {
+function wisski_pathbuilder_get_sparql($id, $conditions = "", $triplewise = FALSE, $startpoint = 0, $inverse = TRUE, $returnvars = array()) {
   $result = db_query("SELECT * FROM {wisski_template} WHERE id = " . $id);
   $item = db_fetch_array($result);
 
@@ -2003,15 +2003,25 @@ function wisski_pathbuilder_get_sparql($id, $conditions = "", $triplewise = FALS
     }
     $sparqlmid = "WHERE { ";
 
+    // if the user told us what variables to select, take these!
+    // e.g. "only select out"
+    if(!empty($returnvars))
+      foreach($returnvars as $returnvar)
+        $sparqlstart .= $returnvar . ' ';
+
     // if inverse reasoning is enabled, do it!
     if(!variable_get("wisskiReasoner_inverse_reasoning",FALSE) || !$inverse) {
       for($ii=$startpoint; $ii<floor(count($path)/2); $ii++) {
-        $sparqlstart .= "?x$ii ";
+        // if the user told us what he wants, fetch this otherwise select everything
+        if(empty($returnvars))
+          $sparqlstart .= "?x$ii ";
         $sparqlmid .= "?x$ii rdf:type <" . $path["x$ii"] . "> . ?x$ii <" . $path["y$ii"] . "> ?x" . ($ii + 1) . " . ";
       }
     } else {
       for($ii=$startpoint; $ii<floor(count($path)/2); $ii++) {
-        $sparqlstart .= "?x$ii ";
+        // if the user told us what he wants, fetch this otherwise select everything
+        if(empty($returnvars))
+          $sparqlstart .= "?x$ii ";
         // we have to check whether property really has an inverse!
         $inverse = wisski_reasoner_getInverse($path["y$ii"]);
         if (!$inverse) {
@@ -2025,13 +2035,15 @@ function wisski_pathbuilder_get_sparql($id, $conditions = "", $triplewise = FALS
 
     // if this is the sparql-query for a group, don't append any primitive data properties      
     if($item['is_group']) {
-      $sparqlstart = $sparqlstart . "?x" . floor(count($path)/2) . " ";
+      if(empty($returnvars))
+        $sparqlstart = $sparqlstart . "?x" . floor(count($path)/2) . " ";
       $sparqlmid = $sparqlmid . "?x" . floor(count($path)/2) . " rdf:type <". $path[("x" . floor(count($path)/2))] . "> . ";
 
       $sparql = $sparqlstart . $sparqlmid . $conditions . " }";
     // if it is a path, append the primitive data property
     } else {
-      $sparqlstart = $sparqlstart . "?x" . floor(count($path)/2) . " ?out ";
+      if(empty($returnvars))
+        $sparqlstart = $sparqlstart . "?x" . floor(count($path)/2) . " ?out ";
       $sparqlmid = $sparqlmid . "?x" . floor(count($path)/2) . " rdf:type <". $path[("x" . floor(count($path)/2))] . "> . ?x" . 
         floor(count($path)/2) . " <" . $datatypeprop . "> ?out . ";
 
@@ -2052,18 +2064,32 @@ function wisski_pathbuilder_get_sparql($id, $conditions = "", $triplewise = FALS
     $sparql['mid'] = "WHERE { ";
     $sparqltriples = array();
     $elements = array();
+    
+    // if the user told us what variables to select, take these!
+    // e.g. "only select out"
+    if(!empty($returnvars))
+      foreach($returnvars as $returnvar) {
+        $sparqlstart .= $returnvar . ' ';
+        $elements[] = $returnvar;
+      }
 
     if(!variable_get("wisskiReasoner_inverse_reasoning",FALSE) || !$inverse) {
       for($ii=$startpoint; $ii<floor(count($path)/2); $ii++) {
-        $sparqlstart .= "?x$ii ";
-        $elements[] = "?x$ii";
+        if(empty($returnvars)) {
+          $sparqlstart .= "?x$ii ";
+          $elements[] = "?x$ii";
+        }
+        
         $sparqltriples[] = "?x$ii rdf:type <" . $path["x$ii"] . "> ";
         $sparqltriples[] = "?x$ii <" . $path["y$ii"] . "> ?x" . ($ii + 1) . "";
       }
     } else {
       for($ii=$startpoint; $ii<floor(count($path)/2); $ii++) {
-        $sparqlstart .= "?x$ii ";
-        $elements[] = "?x$ii";
+        if(empty($returnvars)) {
+          $sparqlstart .= "?x$ii ";
+          $elements[] = "?x$ii";
+        }
+        
         $sparqltriples[] = "?x$ii rdf:type <" . $path["x$ii"] . "> ";
         // we have to check whether property really has an inverse!
         $inverse = wisski_reasoner_getInverse($path["y$ii"]);
@@ -2079,17 +2105,25 @@ function wisski_pathbuilder_get_sparql($id, $conditions = "", $triplewise = FALS
 
     $elements[] = ("?x" . floor(count($path)/2));
     if(!$item['is_group']) {
-      $elements[] = "?out";
-      $sparql["start"] = ($sparqlstart . "?x" . floor(count($path)/2) . " ?out");
+      if(empty($returnvars)) {
+        $elements[] = "?out";
+        $sparqlstart = $sparqlstart . "?x" . floor(count($path)/2) . " ?out";
+      }
+      $sparql["start"] = $sparqlstart;
     } else {
-      $sparql["start"] = ($sparqlstart . "?x" . floor(count($path)/2));
+      if(empty($returnvars))
+        $sparqlstart = $sparqlstart . "?x" . floor(count($path)/2);
+      $sparql["start"] = $sparqlstart;
     }
     $sparql["end"] = $conditions . " }";
 
     $sparqltriples[] = ("?x" . floor(count($path)/2) . " rdf:type <" . $path[("x" . floor(count($path)/2))] . ">");
 
-    if(!$item['is_group'])
-      $sparqltriples[] = ("?x" . floor(count($path)/2) . " <". $datatypeprop . "> ?out");
+    if(!$item['is_group']) {
+      if(empty($returnvars))
+        $sparqltriples[] = ("?x" . floor(count($path)/2) . " <". $datatypeprop . "> ?out");
+    
+    }
 
     $sparql["triples"] = $sparqltriples;  
     $sparql["elements"] = $elements;
@@ -2688,9 +2722,10 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
     //$wrapper = &$wrapperarr[$key]; 
     //$wrapper .= '<div id="wki-collector">';
     if($input == 0) {
+      $pos = floor(count($samepart)/2);
           
-      $sparql = wisski_pathbuilder_get_sparql($parentID, $sparqlcondition);
-    
+      $sparql = wisski_pathbuilder_get_sparql($parentID, $sparqlcondition, FALSE, 0, TRUE, array("?x" . $pos));
+      
       $multigroup = wisski_store_getObj()->wisski_ARCAdapter_getStore()->query($sparql, 'rows');
     
       drupal_add_js('misc/collapse.js');
@@ -2711,7 +2746,9 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
         $form_state = $form_state[$grouparr['id']];
                 
         if($input == 2) {
-          $q = wisski_pathbuilder_get_sparql($grouparr['id'], $sparqlcondition);
+          $pos = floor(count($samepart)/2);
+                    
+          $q = wisski_pathbuilder_get_sparql($grouparr['id'], $sparqlcondition, FALSE, 0, TRUE, array("?x" . $pos));
           $out = wisski_store_getObj()->wisski_ARCAdapter_getStore()->query($q);
           $results = $out['result']['rows'];
 
@@ -2747,7 +2784,8 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
           $grp_val = $form_state[$grouparr['id']][$grouparr['id']];
 
         if($input == 2) { // we are in edit mode -> something is there already
-          $q = wisski_pathbuilder_get_sparql($grouparr['id'], $sparqlcondition);
+          $pos = floor(count($samepart)/2);
+          $q = wisski_pathbuilder_get_sparql($grouparr['id'], $sparqlcondition, FALSE, 0, TRUE, array("?x" . $pos));
           $out = wisski_store_getObj()->wisski_ARCAdapter_getStore()->query($q);
       
           $results = $out['result']['rows'];
@@ -3102,7 +3140,7 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
         // Edit    
       } else if($input == 2) {
 
-        $q = wisski_pathbuilder_get_sparql($arr['id'], $spqcondition);
+        $q = wisski_pathbuilder_get_sparql($arr['id'], $spqcondition, FALSE, 0, TRUE, array("?out"));
 
         if(!isset($wasHere[$q]))
           $wasHere[$q] = 0;
@@ -3266,8 +3304,10 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
 
         // view
       } else {
-
-        $q = wisski_pathbuilder_get_sparql($arr['id'], $spqcondition);
+        if($arr['disamb'] > 0)
+          $q = wisski_pathbuilder_get_sparql($arr['id'], $spqcondition, FALSE, 0, TRUE, array("?x" . ($arr['disamb']-1) ,"?out"));
+        else
+          $q = wisski_pathbuilder_get_sparql($arr['id'], $spqcondition, FALSE, 0, TRUE, array("?out"));
 
 //        drupal_set_message("path " . $arr['id'] . " got value: " . htmlentities($q));
 
