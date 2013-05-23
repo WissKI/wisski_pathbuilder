@@ -3444,8 +3444,8 @@ function _wisski_pathbuilder_get_field($arr) {
       '#title' => t($arr['name']),
       '#default_value' => "",
       '#description' => t(''),
-
-      '#attributes' => array('title' => $arr['description']),	
+      '#size' => $arr['fieldsize'],
+      '#attributes' => array('class' => 'wisski_display' . $arr['displaytype'], 'title' => $arr['description']),	
       '#required' => $arr['mandatory'],
       );
 
@@ -3908,6 +3908,21 @@ function wisski_pathbuilder_edit_item(&$form_state, $type, $item, $menu) {
       '#title' => 'Select the option for group display',
       );
   }
+  
+  $form['item']['displaytype'] = array(
+      '#default_value' => $data['displaytype'],
+      '#key_type' => 'associative',
+      '#multiple_toggle' => '1',
+      '#type' => 'select',
+      '#options' => array("block" => "block", "inline" => "inline"),
+      '#title' => 'Select the option for css styling',
+      );
+  
+  $form['item']['fieldsize'] = array(
+      '#default_value' => $data['fieldsize'],
+      '#type' => 'textfield',
+      '#title' => 'Select the size for this field.',
+      );
 
   if(!isset($form_state['storage']['wisski_pathbuilder_edit_path'])) {
     $form['item']['wisski_pathbuilder_edit_path'] = array(
@@ -4085,9 +4100,9 @@ function wisski_pathbuilder_edit_item_submit($form, &$form_state) {
 
 
   db_query("UPDATE {wisski_template} SET name = '%s', description = '%s', path_array = '%s', " .
-      "short_name = '%s', disamb = %d, datatype_property = '%s', mandatory = %d, fieldtype = '%s', type = %d WHERE id = %d", 
+      "short_name = '%s', disamb = %d, datatype_property = '%s', mandatory = %d, fieldtype = '%s', type = %d, displaytype = '%s', fieldsize = %d WHERE id = %d", 
       $item['name'], $item['description'], serialize($path), $item['short_name'], $item['disamb'], 
-      $datatypeproperty, $item['mandatory'], $item['fieldtype'], $type, $id);
+      $datatypeproperty, $item['mandatory'], $item['fieldtype'], $type, $item['displaytype'], $item['fieldsize'], $id);
 
   $sn = db_fetch_array($result);
   
