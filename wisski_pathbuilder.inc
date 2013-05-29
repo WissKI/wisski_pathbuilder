@@ -486,7 +486,7 @@ function wisski_pathbuilder_getOptionArray($pathid, $arg2 = FALSE) {
     $row = db_fetch_array($result);
    
     if ($arg2) {
-      $arg2_preg_quote = wisski_store_escape_sparql_literal(wisski_store_escape_sparql_regex($arg2), FALSE);
+      $arg2_preg_quote = wisski_store_escape_sparql_literal(wisski_store_escape_sparql_regex($arg2));
     } 
    
     if($row['disamb'] > 1) {
