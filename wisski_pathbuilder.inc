@@ -999,9 +999,12 @@ function wisski_pathbuilder_template_edit_submit($form, &$form_state) {
   $paths = unserialize($form_state['wisskiValues']['paths']);
 
   wisski_pathbuilder_recursive_edit_submit($form, $form_state['values'], $groupid, $paths, $condition, $old_values['values']['form']);
-  
+
+  // update title 
   $displaytitle = _wisski_pathbuilder_generateGroupName($node->title, $groupid);
   db_query("UPDATE {wisski_title_cache} SET title = '" . mysql_real_escape_string($displaytitle) . "' WHERE uri = '" . mysql_real_escape_string(wisski_store_getObj()->wisski_ARCAdapter_delNamespace($node->title)) . "'");
+  // delete cached image uris
+  db_query("DELETE FROM {wisski_image_cache} WHERE uri = '" . mysql_real_escape_string(wisski_store_getObj()->wisski_ARCAdapter_delNamespace($node->title)) . "'");
   
   unset($form_state['storage']);
   $form_state['redirect'] = wisski_store_getObj()->wisski_ARCAdapter_delNamespace($node->title);
