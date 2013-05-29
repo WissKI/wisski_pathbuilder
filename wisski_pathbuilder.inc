@@ -4007,7 +4007,8 @@ function wisski_pathbuilder_edit_item(&$form_state, $type, $item, $menu) {
 }
 
 function _wisski_pathbuilder_generateGroupName($title, $groupid, $data = NULL) {
-
+  $notAnyMatch = TRUE;
+  
   if(empty($data)) {
     $result = db_query("SELECT * FROM {wisski_template} WHERE id = " . $groupid);
     $data = db_fetch_array($result);
@@ -4034,11 +4035,16 @@ function _wisski_pathbuilder_generateGroupName($title, $groupid, $data = NULL) {
       if(!empty($matches[1][$key])) {
         $mymatch = str_replace($match, $sprows['out'], $matches[0][$key]); 
         $out = str_replace($matches[0][$key], substr($mymatch, 1, -1), $out);
-      } else
+        $notAnyMatch = FALSE;
+      } else {
         $out = str_replace($matches[0][$key], $sprows['out'], $out);
+        $notAnyMatch = FALSE;
     } else
       $out = str_replace($matches[0][$key], "", $out);
   }
+
+  if($notAnyMatch)
+    return "";
 
   if(trim($out) == "")
     return $title; 
