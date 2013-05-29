@@ -202,6 +202,20 @@ function wisski_pathbuilder_schema() {
         'description' => 'type of the path, wisski-interna: 2, import: 3, export: 5',
       ),
       
+      'displaytype' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'default' => 'block',
+        'description' => 'select the type of display for css',
+      ),
+
+      'fieldsize' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 60,
+        'description' => 'the size of the field.',
+      ),      
+
 		),
     'primary key' => array('id'),
     'unique keys' => array('uuid' => array('uuid')),
