@@ -44,6 +44,37 @@ function wisski_pathbuilder_schema() {
 
   );
 
+  $schema['wisski_image_cache'] = array(
+    'description' => 'This table caches the rather complex path to the images of all nodes.',
+
+    'fields' => array(
+
+      'id' => array(
+        'type' => 'serial',
+        'not null' => TRUE,
+
+        'description' => 'The id of the cached item.',
+      ),
+
+      'uri' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => true,
+        'description' => 'The uri of the node.',
+      ),
+
+      'title' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => true,
+        'description' => 'The image of the node.',
+      ),
+    ), 
+    'primary key' => array('id'),
+    'indexes' => array('uri' => array('uri')),
+
+  );
+
   $schema['wisski_template'] = array(
     'description' => 'The table that stores the owl-templates for the wisski project.',
     'fields' => array(
@@ -169,20 +200,6 @@ function wisski_pathbuilder_schema() {
         'not null' => TRUE,
         'default' => 2,
         'description' => 'type of the path, wisski-interna: 2, import: 3, export: 5',
-      ),
-
-      'displaytype' => array(
-	'type' => 'varchar',
-	'length' => 255,
-	'default' => 'block',
-	'description' => 'select the type of display for css',
-      ),
-
-      'fieldsize' => array(
-        'type' => 'int',
-        'not null' => TRUE,
-        'default' => 60,
-        'description' => 'the size of the field.',
       ),
       
 		),

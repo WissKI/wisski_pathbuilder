@@ -319,6 +319,46 @@ function wisski_pathbuilder_getText($node) {
 }
 
 function wisski_pathbuilder_getImages($node, $images = 0) {
+//  return _wisski_pathbuilder_make_image_string($node, $images,_wisski_pathbuilder_getImages($node, $images));
+
+  if(empty($node))
+    return;
+  
+  if(is_numeric($node) && $node->type != "individual")
+    return;
+
+  if(is_object($node))
+    $title = $node->title;
+  else
+    $title = $node;
+
+  if(empty($title))
+    return;
+
+  global $base_url;
+  if(!strpos($base_url, $title))
+    $title = wisski_store_getObj()->wisski_ARCAdapter_delNamespace($title);
+
+  $result = db_query("SELECT title FROM {wisski_image_cache} WHERE uri = '" . $title . "'");
+  
+  $images_from_db = array();
+
+  while($image_from_db = db_fetch_array($result))
+    $images_from_db[] = array('out' => $image_from_db['title']);
+  
+  if(empty($images_from_db)) {
+    $images_from_db = _wisski_pathbuilder_getImages($node);
+    
+    if(!empty($images_from_db))
+      foreach($images_from_db as $pic) {
+        db_query("INSERT INTO {wisski_image_cache} (uri, title) VALUES ('" . mysql_real_escape_string($title) . "', '" . mysql_real_escape_string($pic['out']) . "')");
+      }
+  }
+
+  return _wisski_pathbuilder_make_image_string($node, $images, $images_from_db);
+}
+
+function _wisski_pathbuilder_getImages($node, $images = 0) {
   
   if(empty($node))
     return;
@@ -380,9 +420,19 @@ function wisski_pathbuilder_getImages($node, $images = 0) {
 
   $rows =  wisski_store_getObj()->wisski_ARCAdapter_getStore()->query($total_sparql, 'rows');
 
-  foreach($rows as $pic) {
-    $pic = $pic['out'];
-      
+  return $rows;
+}
+
+
+function _wisski_pathbuilder_make_image_string($node, $images, $pics = array()) {
+
+    if(!is_array($pics) || empty($pics))
+      return "";
+    
+    foreach($pics as $pic) {
+      $pic = $pic['out'];
+          
+    
     if(trim($pic) == "")
       continue;
 
