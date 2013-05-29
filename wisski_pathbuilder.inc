@@ -4039,6 +4039,7 @@ function _wisski_pathbuilder_generateGroupName($title, $groupid, $data = NULL) {
       } else {
         $out = str_replace($matches[0][$key], $sprows['out'], $out);
         $notAnyMatch = FALSE;
+      }
     } else
       $out = str_replace($matches[0][$key], "", $out);
   }
