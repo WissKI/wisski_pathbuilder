@@ -2825,7 +2825,8 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
         // generate a duplicate button
         $tmp['wisski_pathbuilder_dupl_button_' . $uuid] = array(
           '#type' => 'image_button',
-          '#attributes' => array('class' => 'wki-button-dupl wisski_dupl_multi', 'src' => base_path() . 'sites/all/themes/blendedmalts/pics/ico_add.png',
+          '#src' => 'sites/all/themes/blendedmalts/pics/ico_add.png',
+          '#attributes' => array('class' => 'wki-button-dupl wisski_dupl_multi', 
           'alt' => t('duplicate group with id ' . $grouparr['id'])),
           '#submit' => array('wisski_pathbuilder_dupl_submit'),
           '#ahah' => array(
@@ -3037,7 +3038,8 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
 
           $tmp['wisski_pathbuilder_dupl_button_' . $uuid] = array(
               '#type' => 'image_button', 
-              '#attributes' => array('class' => 'wki-button-dupl wisski_dupl_single', 'src' => base_path() . 'sites/all/themes/blendedmalts/pics/ico_add.png',
+              '#src' => 'sites/all/themes/blendedmalts/pics/ico_add.png',
+              '#attributes' => array('class' => 'wki-button-dupl wisski_dupl_single', 
               'alt' => t('duplicate path with id ' . $arr['id'])),
         //      '#parents' => $myparents,
               '#submit' => array('wisski_pathbuilder_dupl_submit'),
@@ -3220,7 +3222,8 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
 
           $tmp['wisski_pathbuilder_dupl_button_' . $uuid] = array(
               '#type' => 'image_button',
-              '#attributes' => array('class' => 'wki-button-dupl wisski_dupl_single', 'src' => base_path() . 'sites/all/themes/blendedmalts/pics/ico_add.png',
+              '#src' => 'sites/all/themes/blendedmalts/pics/ico_add.png',
+              '#attributes' => array('class' => 'wki-button-dupl wisski_dupl_single', 
               'alt' => t('duplicate path with id ' . $arr['id'])),
            //   '#parents' => $myparents,
               '#submit' => array('wisski_pathbuilder_dupl_submit'),
