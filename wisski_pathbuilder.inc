@@ -4032,8 +4032,20 @@ function _wisski_pathbuilder_generateGroupName($title, $groupid, $data = NULL) {
 
     $sparql = wisski_pathbuilder_get_sparql(substr($match, 1), $sparqlcondition);
 
-    $sprows = wisski_store_getObj()->wisski_ARCAdapter_getStore()->query($sparql, 'row');
-  
+    $myrows = wisski_store_getObj()->wisski_ARCAdapter_getStore()->query($sparql, 'rows');
+    
+    if(empty($myrows))
+      continue;
+
+    $sprows = array();
+    $sprows['out'] = "";
+    // if there are several names, print them all with coma separated. 
+    for($i = 0; $i < count($myrows); $i++) {
+      $sprows['out'] .= $myrows[$i]['out'];
+      if($i+1 < count($myrows))
+        $sprows['out'] .= ", ";
+    }
+
     if(!empty($sprows['out'])) {
       if(!empty($matches[1][$key])) {
         $mymatch = str_replace($match, $sprows['out'], $matches[0][$key]); 
