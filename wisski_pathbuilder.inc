@@ -4020,12 +4020,36 @@ function _wisski_pathbuilder_generateGroupName($title, $groupid, $data = NULL) {
   if($data['short_name'] == "")
     return $title;
 
-  preg_match_all('/(\{.*?){0,1}(![0-9]*)(\}.*?){0,1}/',$data['short_name'], $matches);
-//  drupal_set_message(serialize($matches));
+  // the optional matches
+//preg_match_all('/(\{[^\{\}!]*)(![0-9]*)([^\{\}!]*\})/',$data['short_name'], $matches);
+  preg_match_all('/(\{.*?)(![0-9]*)(.*?\})/',$data['short_name'], $matches);
+  // all matches
+  preg_match_all('/(![0-9]*)/',$data['short_name'], $all_matches);
+  
+  // we have to merge all matches with the optional matches, as we need the brackets if there are any
+  if(!empty($all_matches[1])) {
+    // go through all matches
+    foreach($all_matches[1] as $match) {
+      // if the match is not already there, add it with no brackets
+      if(!in_array($match, $matches[2])) {
+        // in the middle there is the number
+        $matches[2][] = $match;
+
+        // in the beginning and in the end there is no bracket        
+        $matches[1][] = "";
+        $matches[3][] = "";
+        
+        // all in all there is just the number
+        $matches[0][] = $match;
+      }
+    }
+  }
+  
   $out = $data['short_name'];
 
   $samepart = _wisski_pathbuilder_calculate_group_samepart($groupid);
-
+  
+  // is there something to replace?
   foreach($matches[2] as $key => $match) {
   
     $sparqlcondition = ("FILTER ( ?x" . (floor(count($samepart)/2)) . " = <" . wisski_store_getObj()->wisski_ARCAdapter_delNamespace($title). "> )");
@@ -4034,9 +4058,6 @@ function _wisski_pathbuilder_generateGroupName($title, $groupid, $data = NULL) {
 
     $myrows = wisski_store_getObj()->wisski_ARCAdapter_getStore()->query($sparql, 'rows');
     
-    if(empty($myrows))
-      continue;
-
     $sprows = array();
     $sprows['out'] = "";
     // if there are several names, print them all with coma separated. 
@@ -4044,7 +4065,7 @@ function _wisski_pathbuilder_generateGroupName($title, $groupid, $data = NULL) {
       $sprows['out'] .= $myrows[$i]['out'];
       if($i+1 < count($myrows))
         $sprows['out'] .= ", ";
-    }
+    }    
 
     if(!empty($sprows['out'])) {
       if(!empty($matches[1][$key])) {
