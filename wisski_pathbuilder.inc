@@ -1179,8 +1179,6 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
 //            drupal_set_message(" v is: " . $v);
 //            drupal_set_message("mein path ist: " . serialize($paths[$v]));
 //            drupal_set_message("MS ist: " . $main_subject);
-
-
           
             // d.h. die Gruppe gabs schon
             if(!empty($paths[$v]['path'])) {
@@ -1208,6 +1206,7 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
                 if(!empty($main_subject)) {
 //                  drupal_set_message("There is a ms!", 'error');
                   $data = wisski_pathbuilder_get_group_samepart_data($my_group['id'], $main_subject);
+
 //                  $sp = _wisski_pathbuilder_calculate_group_samepart($groupid);
                   
 //                  drupal_set_message("data is: " . serialize($data));
@@ -1222,6 +1221,7 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
 //                  $triples = _wisski_pathbuilder_generate_triples_of_path($form, $value, $row['id'], $data["x" . floor(count($data)/2)], $data);
                 } else {
 //                  drupal_set_message("There is no MS!");
+
                   list($indiv, $auth_triples, $x) = wisski_pathbuilder_check_auth_triples($auth_key, $value, $authinfo);
                   if (empty($indiv)) {
                     $triples = _wisski_pathbuilder_generate_triples_of_path($form, $value, $row['id']);
@@ -1233,9 +1233,10 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
                   $main_subject = $triples[0]['s'];
                   $condition = "FILTER ( ?x0 = <" . $main_subject . ">) ";
                 }
-              } else {
-//               drupal_set_message("it is no main group");
+              } else { // Keine Hauptgruppe?
+//               drupal_set_message("it is no main group and ms is: " . htmlentities($main_subject));
                 if(!empty($main_subject)) {
+
 //                  drupal_set_message("there is a ms!");
                   //$data = wisski_pathbuilder_get_group_samepart_data($my_group['id'], $main_subject);
                   //drupal_set_message("data is: " . serialize($data));
@@ -1312,9 +1313,9 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
 //                  drupal_set_message("the paths are: " . serialize($paths));
 //                  $paths[$v] = wisski_pathbuilder_get_group_samepart_data($my_group['id'], $main_subject);
                   //drupal_set_message("samepart ist: " . wisski_pathbuilder_get_group_samepart_data($my_group['id'], $main_subject));
-                } else {// else kann eigentlich nicht passieren, da obige rekursion ziehen hätte müssen
+                } else { // Gruppe beginnt direkt mit einer Sub-Gruppe... ggf. weil die felder weiter unten stehen.
                   //$data = wisski_pathbuilder_get_group_samepart_data($my_group['group_id']);
-//                  drupal_set_message("this should not happen!");
+
                   list($indiv, $auth_triples, $x) = wisski_pathbuilder_check_auth_triples($auth_key, $value, $authinfo);
                   if (empty($indiv)) {
                     $triples = _wisski_pathbuilder_generate_triples_of_path($form, $value, $row['id']);
@@ -1322,6 +1323,29 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
                     $triples = _wisski_pathbuilder_generate_triples_of_path($form, $value, $row['id'], '', array(), $indiv, $x);
                     $triples = array_merge($triples, $auth_triples);
                   }
+                  
+                  $path = array();
+                  $path['x0'] = $triples[0]['s']; 
+                  $sp = _wisski_pathbuilder_calculate_group_samepart($groupid);
+                  
+                  $m_triples = $triples;
+                  
+                  for($i=floor(count($data)/2); $i<floor(count($sp)/2); $i++) {
+                    $pred = $sp['y' . $i];
+                    $path['y' . $i] = $pred;
+                    
+                    foreach($m_triples as $m_key => $triple) {
+                      if($triple['p'] == $pred) {
+                        $path['x' . ($i+1)] = $triple['o'];
+                        unset($m_triples[$m_key]);
+                        continue;
+                      }
+                    }
+                  }
+                  
+                  $paths[$v]['path'] = $path;
+                  
+//                  drupal_set_message(serialize($paths));
 //                  $triples = _wisski_pathbuilder_generate_triples_of_path($form, $value, $row['id']);
                   $main_subject = $triples[0]['s'];
                   $condition = "FILTER ( ?x0 = <" . $main_subject . ">) ";
