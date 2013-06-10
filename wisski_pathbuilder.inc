@@ -2862,7 +2862,7 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
         );
         
         $valArr = array();
-        $valArr['button'] = $tmp;
+//        $valArr['button'] = $tmp;
         
         $tmpVal = array();
         $tmpVal['#type']   = 'markup';
@@ -2898,7 +2898,7 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
         }
         
         $valArr[$grouparr['id']] = $tmpVal;
-                
+        $valArr['button'] = $tmp;              
         $form['form'][$grouparr['id']] = $valArr;
          
 //        drupal_set_message(serialize($form['form'][$grouparr['id']]));
@@ -3105,8 +3105,9 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
           }
 
           $valArr['#default_value'] = $def;
-          $valArr['button'] = $tmp;
+//          $valArr['button'] = $tmp;
           $valArr[$arr['id']] = $tmpVal;
+          $valArr['button'] = $tmp;
 //          $valArr[$arr['id'] . '_' . $arr['id']] = $tmpAuto;
           $tmpbase[$arr['id']] = $valArr;
         } else {
@@ -3294,8 +3295,9 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
 
           $valArr['#default_value'] = $def;
 
-          $valArr['button'] = $tmp;
+//          $valArr['button'] = $tmp;
           $valArr[$arr['id']] = $tmpVal;
+          $valArr['button'] = $tmp;
   //        $valArr[$arr['id'] . '_' . $arr['id']] = $tmpAuto;
           $tmpbase[$arr['id']] = $valArr;
 
