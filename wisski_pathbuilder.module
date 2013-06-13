@@ -456,11 +456,20 @@ function _wisski_pathbuilder_make_image_string($node, $images, $pics = array()) 
       $newname = md5($pic);
 
       // get the extension of the file from the url
-      preg_match('/\.(jpg|jpeg|png|gif|bmp|tif|tiff)$/i', $pic, $extension);
+      preg_match('/\.(jpg|jpeg|png|gif|bmp|tif|tiff|pdf)$/i', $pic, $extension);
       $extension = $extension[1];
 
       if(empty($extension)) // assume jpg if we don't know
         $extension = 'jpg';
+        
+      // should download be forced on click - 0/1
+      $force_download = 0;
+      
+      // in case of pdf force download, but the thumbnail has to be jpg
+      if($extension == "pdf") {
+        $force_download = 1;
+        $extension = "jpg";
+      }
 
       // file name for the local copy of the original
       $newfile = $newname . '_orig.' . $extension;
@@ -516,7 +525,8 @@ function _wisski_pathbuilder_make_image_string($node, $images, $pics = array()) 
 
             $destination = str_replace('.' . $ext, '.jpg', $image->source);
             
-            $command = escapeshellarg($rsr) .' '. escapeshellarg($destination);
+            // only convert the first image [0]
+            $command = escapeshellarg($rsr. '[0]') .' '. escapeshellarg($destination);
             if (0 != _imageapi_imagemagick_convert_exec($command, $output, $errors)) {
               return FALSE;
             }
@@ -536,13 +546,16 @@ function _wisski_pathbuilder_make_image_string($node, $images, $pics = array()) 
       if (is_file($dst) || @imagecache_build_derivative($preset['actions'], $orig, $dst)) {
         global $base_path;
         if (is_file($orig)) {
-          $imagestr .= '<li><a href="' . $base_path . $orig . '"><img src="' . $base_path . $dst . '"/></a></li>';
+          if($force_download == 1) {
+            $imagestr .= '<li><a href="' . $base_path . $orig . '"><img src="' . $base_path . $dst . '"/></a></li>';
+          } else
+            $imagestr .= '<li><a href="' . $base_path . $orig . '" class="wisski-image"><img src="' . $base_path . $dst . '"/></a></li>';
         } else {          
-          $imagestr .= '<li><a href="' . $base_path . $dst . '"><img src="' . $base_path . $dst . '"/></a></li>';
+          $imagestr .= '<li><a href="' . $base_path . $dst . '" class="wisski-image"><img src="' . $base_path . $dst . '"/></a></li>';
         }
       } else {
 	drupal_set_message("The image with URL " . $pic . " could not be downloaded. Probably the link is wrong.", "error");
-        $imagestr .= '<li><a href="' . $pic . '"><img src="' . $pic . '"/></a></li>';
+        $imagestr .= '<li><a href="' . $pic . '" class="wisski-image"><img src="' . $pic . '"/></a></li>';
       }
     } else {
       $pics = getimagesize($pic);
