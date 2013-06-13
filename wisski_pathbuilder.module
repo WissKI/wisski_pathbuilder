@@ -321,25 +321,36 @@ function wisski_pathbuilder_getText($node) {
 function wisski_pathbuilder_getImages($node, $images = 0) {
 //  return _wisski_pathbuilder_make_image_string($node, $images,_wisski_pathbuilder_getImages($node, $images));
 
+  // if there is no node, skip it
   if(empty($node))
     return;
   
-  if(is_numeric($node) && $node->type != "individual")
+  // if it is a number, we have to load it
+  if(is_numeric($node))
+    $node = node_load($node);
+  
+  // if it is an object and it is not an individual node we have no picture for you (thank you heidi ;D)
+  if(is_object($node) && $node->type != "individual")
     return;
 
+  // if it is an object and it seems to be an individual - get the title
   if(is_object($node))
     $title = $node->title;
-  else
+  else // or did we get a title?
     $title = $node;
 
+  // if we have no title now, we can skip this!
   if(empty($title))
     return;
-
+  
   global $base_url;
   if(!strpos($base_url, $title))
     $title = wisski_store_getObj()->wisski_ARCAdapter_delNamespace($title);
 
-  $result = db_query("SELECT title FROM {wisski_image_cache} WHERE uri = '" . $title . "'");
+  if($images)
+    $result = db_query("SELECT title FROM {wisski_image_cache} WHERE uri = '" . $title . "' LIMIT $images");
+  else
+    $result = db_query("SELECT title FROM {wisski_image_cache} WHERE uri = '" . $title . "'");
   
   $images_from_db = array();
 
