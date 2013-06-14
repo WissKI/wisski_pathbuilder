@@ -552,7 +552,7 @@ function _wisski_pathbuilder_make_image_string($node, $images, $pics = array()) 
           // whenever we have tif, make a pyramidal tif.        
           $pyrfile = $newname . '.tif';
 
-          $pyr = imagecache_create_path('wisski_pyr', $pyrfile);
+          $pyr = imagecache_create_path('wisski_pyramid', $pyrfile);
         
           // check if dir exists, otherwise create it!
           $dir = dirname($pyr);
