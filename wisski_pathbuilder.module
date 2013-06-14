@@ -465,6 +465,9 @@ function _wisski_pathbuilder_make_image_string($node, $images, $pics = array()) 
       // should download be forced on click - 0/1
       $force_download = 0;
       
+      // check if pyramidal imaging should be done
+      $pyr = 0;
+      
       // in case of pdf force download, but the thumbnail has to be jpg
       if($extension == "pdf") {
         $force_download = 1;
@@ -477,6 +480,13 @@ function _wisski_pathbuilder_make_image_string($node, $images, $pics = array()) 
       // get the path to it
       $orig = imagecache_create_path('wisski_original', $newfile);
       $preset_orig = imagecache_preset_by_name('wisski_original');
+
+      // check if dir exists, otherwise create it!
+      $dir = dirname($orig);
+      if (!file_check_directory($dir, FILE_CREATE_DIRECTORY) && !mkdir($dir, 0775, TRUE)) {
+        drupal_set_message("Could not provide directory for pyramidal tifs", "error");
+        return; 
+      }
 
       global $base_url;
 
@@ -505,7 +515,7 @@ function _wisski_pathbuilder_make_image_string($node, $images, $pics = array()) 
       }
 
       // if it is a tif it might have to be converted
-      if(strcasecmp($extension, "tif") == 0 || strcasecmp($extension, "tiff") == 0) {
+      if(strcasecmp($extension, "tif") === 0 || strcasecmp($extension, "tiff") === 0) {
         $lookpath = str_replace('.' .$extension, '.jpg', $orig);
         
         if(file_exists($lookpath)) {
@@ -535,38 +545,43 @@ function _wisski_pathbuilder_make_image_string($node, $images, $pics = array()) 
             $extension = "jpg";
           }
         }
-        
-        $pyrfile = $newname . '.tif';
 
-        $pyr = imagecache_create_path('wisski_pyr', $pyrfile);
-        
-        $dir = dirname($pyr);
-        
-        if (!file_check_directory($dir, FILE_CREATE_DIRECTORY) && !mkdir($dir, 0775, TRUE)) {
-          drupal_set_message("Could not provide directory for pyramidal tifs", "error");
-          return; 
-        }
-        
-        $preset_pyr = imagecache_preset_by_name('wisski_pyr');
-        //drupal_set_message(serialize($pyr));
-
-        if(!file_exists($pyr)) { 
-          $image = imageapi_image_open($orig);
+        // we need wisski_iip for pyramidal view
+        if(module_exists("wisski_iip")) {
           
-          if ($image->info['mime_type'] && $image->toolkit == 'imageapi_imagemagick') {
+          // whenever we have tif, make a pyramidal tif.        
+          $pyrfile = $newname . '.tif';
 
-            //get extension
-            $current_path = pathinfo($image->source);
-            $rsr = $image->source;
-            //$ext = $current_path['extension'];
-            global $base_path;
+          $pyr = imagecache_create_path('wisski_pyr', $pyrfile);
+        
+          // check if dir exists, otherwise create it!
+          $dir = dirname($pyr);
+          if (!file_check_directory($dir, FILE_CREATE_DIRECTORY) && !mkdir($dir, 0775, TRUE)) {
+            drupal_set_message("Could not provide directory for pyramidal tifs", "error");
+            return; 
+          }
+        
+          $preset_pyr = imagecache_preset_by_name('wisski_pyramid');
 
-            $destination = getcwd() . '/' . $pyr; //= str_replace('.' . $ext, '.jpg', $image->source);
+          // only convert it, if we need it - otherwise we already have it!
+          if(!file_exists($pyr)) { 
+            $image = imageapi_image_open($orig);
             
-            // only convert the first image [0]
-            $command = escapeshellarg($rsr. '[0]') ." -define tiff:tile-geometry=256x256 -compress jpeg 'ptif:" . escapeshellarg($destination) . "'";
-            if (0 != _imageapi_imagemagick_convert_exec($command, $output, $errors)) {
-              return FALSE;
+            if ($image->info['mime_type'] && $image->toolkit == 'imageapi_imagemagick') {
+
+              //get extension
+              $current_path = pathinfo($image->source);
+              $rsr = $image->source;
+              //$ext = $current_path['extension'];
+              global $base_path;
+
+              $destination = getcwd() . '/' . $pyr;
+            
+              // only convert the first image [0]
+              $command = escapeshellarg($rsr. '[0]') ." -define tiff:tile-geometry=256x256 -compress jpeg 'ptif:" . escapeshellarg($destination) . "'";
+              if (0 != _imageapi_imagemagick_convert_exec($command, $output, $errors)) {
+                return FALSE;
+              }
             }
           }
         }
@@ -584,7 +599,7 @@ function _wisski_pathbuilder_make_image_string($node, $images, $pics = array()) 
         if (is_file($orig)) {
           if($force_download == 1) {
             $imagestr .= '<li><a href="' . $base_path . $orig . '"><img src="' . $base_path . $dst . '"/></a></li>';
-          } else if(!empty($pyr)) {
+          } else if(!empty($pyr) && module_exists('wisski_iip')) {
             $imagestr .=  '<li><a href="' . $base_url . '/node/' . arg(1) . '/zoom?path=' . rawurlencode(getcwd() . '/' . $pyr) . '"><img src="' . $base_path . $dst . '"/></a></li>';
           } else
             $imagestr .= '<li><a href="' . $base_path . $orig . '" class="wisski-image"><img src="' . $base_path . $dst . '"/></a></li>';
@@ -641,8 +656,8 @@ function wisski_pathbuilder_imagecache_default_presets() {
   );
   
   // preset for pyramidal tiffs
-  $presets['wisski_pyr'] = array (
-    'presetname' => 'wisski_pyr',
+  $presets['wisski_pyramid'] = array (
+    'presetname' => 'wisski_pyramid',
     'actions' => array(
     ),
   );
