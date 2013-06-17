@@ -2274,6 +2274,9 @@ function wisski_pathbuilder_get_sparql($id, $conditions = "", $triplewise = FALS
 
       $item['name']['#value'] = $titel; // $concept['name'];
 
+      if($concept['group_id'] == 0) {
+        $item['#attributes'] = array("class" => "wisski_tablesubheader");
+      }
 
       $operations = array();
       $operations['edit'] = l(t('edit'), 'admin/settings/wisski/pathbuilder/'. $item["#item"]["mlid"] .'/edit');
