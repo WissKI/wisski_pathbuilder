@@ -813,7 +813,8 @@ function wisski_pathbuilder_template_edit($form_state, $node) {
 
 //  drupal_set_message("building with fs: " . serialize($fs));
   $paths = array();
-  $form = _wisski_pathbuilder_recursive_build_group($fs, $groupid, $paths, 2, $sparqlcondition, 2);
+  $form = _wisski_pathbuilder_recursive_build_group($fs, $groupid, $paths, 2, $sparqlcondition, array(2, 7));
+//  $form = _wisski_pathbuilder_recursive_build_group($fs, $groupid, $paths, 2, $sparqlcondition, 5);
 //  drupal_set_message(serialize($paths));
   $form['#cache'] = TRUE;
 
@@ -1574,20 +1575,17 @@ function _wisski_pathbuilder_generate_triples_of_path($form, $valuestr, $id, $su
 }
 
 function wisski_pathbuilder_template_view($form_state, $node, &$groupid = -1, $samepart = array()) {
-//  drupal_set_message(serialize($form_state));
-//  drupal_set_message(serialize($node));
   
   if($groupid == -1) {
     $groupid = wisski_pathbuilder_getGroupIDForIndividual(wisski_store_getObj()->wisski_ARCAdapter_delNamespace($node->title));
   }
 
-//  drupal_set_message("groupid: " . $groupid);
-
   $samepart = _wisski_pathbuilder_calculate_group_samepart($groupid);
   $sparqlcondition = (" FILTER ( ?x" . (floor(count($samepart)/2)) . " = <" . wisski_store_getObj()->wisski_ARCAdapter_delNamespace($node->title). "> ) ");
   $paths = array();
-  // $form = _wisski_pathbuilder_recursive_build_group(array(), $groupid, $paths, $input = 0, $sparqlcondition, 2);
-  $form = _wisski_pathbuilder_recursive_build_group($form_state['values'], $groupid, $paths, $input = 0, $sparqlcondition, 2);
+
+  // last parameter: 10 is for view (2) * export (5). Usually this was 2 in the past.
+  $form = _wisski_pathbuilder_recursive_build_group($form_state['values'], $groupid, $paths, $input = 0, $sparqlcondition, array(2, 5));
 
   return $form;  
 
@@ -2324,7 +2322,7 @@ function wisski_pathbuilder_build_group($form_state, $parentID, $treetype = 2) {
   if(!empty($form_state['values']))
     $form_state = $form_state['values'];
     
-  $form = _wisski_pathbuilder_recursive_build_group($form_state, $parentID, $paths, 1, "", $treetype); 
+  $form = _wisski_pathbuilder_recursive_build_group($form_state, $parentID, $paths, 1, "", array($treetype)); 
 //  $form = array_merge($form, $tmp);
 
   $form['group'] = array(
@@ -2692,11 +2690,11 @@ function _wisski_pathbuilder_gen_triples_of_group($form, &$form_state, $groupid,
  * @param $parentID is the parentID of the field. This renders recursively so this is necessary.
  *        $input can be: 0 for viewing, 1 for adding, 2 for editing
  *        $sparqlcondition is necessary for viewing and editing!
- *				$treetype the type of the tree of the pathbuilder - default: 1 so everything is shown.
+ *        $treetype the type of the tree of the pathbuilder as an array - default: array(1) so everything is shown.
  * @author Mark Fichtner
  **/
-function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$paths, $input = 1, $sparqlcondition = "", $treetype = 1) {  
-  
+function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$paths, $input = 1, $sparqlcondition = "", $treetype = array(1)) {  
+
   drupal_add_js(drupal_get_path('module', 'wisski_pathbuilder') . '/wisski_pathbuilder.js');
   $vars = variable_get("wisski_pathbuilder_templateids", array());
   //print_r("build with formstate: " . serialize($form_state));
@@ -2719,10 +2717,17 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
     variable_set("wisski_pathbuilder_templateids", $vars);
   }
 
-  if(($grouparr['type'] % $treetype) != 0) {
+  $continue = 0;
 
+  foreach($treetype as $type ) {
+    if(($grouparr['type'] % $type) == 0) {
+      $continue = 1;
+    }
+  }
+    
+  if(!$continue) {
     if($input == 0)
-      return "";
+        return "";
     return array();
   }
 
@@ -3004,8 +3009,13 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
   
   while($arr = db_fetch_array($resultfields)) {
     $iterator++;
+    $continue = 0;
+    
+    foreach($treetype as $type) 
+      if(($arr['type'] % $type) == 0)
+        $continue = 1;
 
-    if(($arr['type'] % $treetype) > 0)
+    if(!$continue)
       continue;
 
     if($arr['is_group'] == 0) {
