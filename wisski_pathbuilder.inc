@@ -1143,7 +1143,7 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
           }
 
           $delete .= $condition . '. FILTER ( ?out = "' . wisski_store_escape_sparql_literal($value) . '" ) }';
- //         drupal_set_message("I am deleting: " . htmlentities($delete));
+//          drupal_set_message("I am deleting: " . htmlentities($delete));
 
           wisski_store_getObj()->wisski_ARCAdapter_getStore()->query($delete);
 //        }

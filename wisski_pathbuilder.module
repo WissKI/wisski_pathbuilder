@@ -404,33 +404,26 @@ function _wisski_pathbuilder_getImages($node, $images = 0) {
   $condition = ("FILTER ( ?x0 = <" . wisski_store_getObj()->wisski_ARCAdapter_delNamespace($indiv). "> ) ");
   
   $total_sparql = "";
+ 
+  $rows = array();
+ 
+  foreach($imagegroups as $imagegroup) { 
   
-  if(count($imagegroups) > 1) {
-    $total_sparql = "SELECT ?out WHERE ";
-    foreach($imagegroups as $imagegroup) {
-      $counter++;
-      $sparql = wisski_pathbuilder_get_sparql($imagegroup, $condition);
-      preg_replace('/SELECT .*? WHERE/i', '', $sparql);
-      
-      $total_sparql .= $sparql;
-      
-      if($counter < count($imagegroups))
-        $total_sparql .= " UNION ";
-    }
-  } else if(count($imagegroups) == 1) {
-    foreach($imagegroups as $imagegroup) {
-      $total_sparql = wisski_pathbuilder_get_sparql($imagegroup, $condition);
-    }
+    $total_sparql = wisski_pathbuilder_get_sparql($imagegroup, $condition, FALSE, 0, TRUE, array("?out"));
+
+    if(empty($total_sparql))
+      return;
+  
+    if($images > 0) 
+      $total_sparql .= " LIMIT " . $images - count($rows);
+
+    $rows = array_merge($rows, wisski_store_getObj()->wisski_ARCAdapter_getStore()->query($total_sparql, 'rows'));
+    
+    if(count($rows) == $images)
+      break;
+    
   }
   
-  if(empty($total_sparql))
-    return;
-  
-  if($images > 0) 
-    $total_sparql .= " LIMIT " . $images;
-
-  $rows =  wisski_store_getObj()->wisski_ARCAdapter_getStore()->query($total_sparql, 'rows');
-
   return $rows;
 }
 
@@ -835,68 +828,109 @@ function wisski_pathbuilder_form_alter(&$form, &$form_state, $form_id) {
 
 }
 
+function wisski_recursive_array_search($needle, &$haystack, $delete) {
+  foreach($haystack as $key => $value) { 
+    
+    $current_key=$key; 
+    
+    if($needle === $value) {
+      if($delete != FALSE)
+        $haystack[$key] = "";
+      return $current_key; 
+    } else if(is_array($value)) {
+      $ret = wisski_recursive_array_search($needle, $haystack[$key], $delete);
+      if($ret !== FALSE) 
+        return $ret;
+    }
+  } 
+  return false;
+}
+
 function wisski_imageprocessing($form, &$form_state) {
   module_load_include('inc', 'wisski_pathbuilder', 'wisski_pathbuilder');
   module_load_include('inc', 'node', 'node.pages');
   
   if($form_state['values']['files']) {
+    $allgroups = wisski_pathbuilder_getAllMembers($form_state['values']['group'], FALSE);
+        
+    $imagegroups = array();
+          
+    foreach($allgroups as $imagegroup) {
+      $data = wisski_pathbuilder_getPathData($imagegroup);
+      if($data['fieldtype'] == "images") {
+        $imagegroups[] = $imagegroup;
+      }
+    }
+      
+    if(count($imagegroups) <= 0) 
+      break;
+
+    // path to get to this object
+    $to_get_there = array();
+    // is a group a multigroup?
+    $multigroups = array();
+    // what is the length of the path?
+    $path_length = array();
+
+    foreach($imagegroups as $imagegroup) {
+      $to_get_there[$imagegroup] = array();
+      $multigroups[$imagegroup] = array();
+      $path_length[$imagegroup] = array();
+      // select the first one that I've got      
+      $to_attach = $imagegroup;
+
+      // initialize current group
+      $current = $to_attach;
+          
+      // go down from the image path through the parents until current is 0 (= main group)
+      while($current != 0) {
+        $data = wisski_pathbuilder_getPathData($current);
+        $path_length[$current] = count(unserialize($data['path_array']));
+        if($data['fieldtype'] == "ontogroup")
+          $multigroups[$current] = TRUE;
+        else
+          $multigroups[$current] = FALSE;
+        $to_get_there[$imagegroup] = array_merge(array($current), $to_get_there[$imagegroup]);
+        $current = $data['group_id'];
+      }
+    }
+    
+    
     foreach($form_state['values']['files'] as $file) {
       if(preg_match('/(\.png|\.jpg|\.jpeg|\.gif|\.tif|\.tiff)$/i', $file['filename'])) {
+        $already_there = FALSE;
 
-        $allgroups = wisski_pathbuilder_getAllMembers($form_state['values']['group'], FALSE);
-        
-        $imagegroups = array();
-          
-        foreach($allgroups as $imagegroup) {
-          $data = wisski_pathbuilder_getPathData($imagegroup);
-          if($data['fieldtype'] == "images") {
-            $imagegroups[] = $imagegroup;
+        // recursively search the image        
+        $found = wisski_recursive_array_search(file_create_url($file['filepath']), $form_state['values'], $file['remove']);
+        // already there?
+        if($found !== FALSE)
+          $already_there = TRUE;          
+       
+        // only add it, if it is not already there and it is not going to be deleted.
+        if(!$already_there && !$file['remove']) {
+
+          // we didn't find it, so we add it to the one with the shortest path
+          $pathlength = $path_length[$imagegroups[0]];
+          $imagegroup = $imagegroups[0];
+
+          foreach($imagegroups as $one_group) {
+            if($path_length[$one_group] < $pathlength) {
+              $pathlength = $path_length[$one_group];
+              $imagegroup = $one_group;
+            }
           }
-        }
+          
+          $fs_pointer = &$form_state['values'];
       
-        if(count($imagegroups) <= 0) 
-          break;
-      
-        $to_attach = $imagegroups[count($imagegroups)-1];
-        $to_get_there = array();
-        $current = $to_attach;
-        $multigroups = array();
-      
-        while($current != 0) {
-          $data = wisski_pathbuilder_getPathData($current);
-          if($data['fieldtype'] == "ontogroup")
-            $multigroups[$current] = TRUE;
-          else
-            $multigroups[$current] = FALSE;
-          $to_get_there = array_merge(array($current), $to_get_there);
-          $current = $data['group_id'];
-        }
-        
-//        drupal_set_message(serialize($to_get_there));
-//        return;
-        
-        $fs_pointer = &$form_state['values'];
-      
-        foreach($to_get_there as $go_to) {
-//          drupal_set_message("fs pointer is now: " . serialize($fs_pointer));
-          if($multigroups[$go_to])
-            $fs_pointer = &$fs_pointer[$go_to][$go_to][$go_to . '_0'];
-          else
-            $fs_pointer = &$fs_pointer[$go_to][$go_to];
-        }
-//        drupal_set_message("fs pointer is now: " . serialize($fs_pointer));
-      
-        $already_there = false;
-        if($fs_pointer)
-          foreach($fs_pointer as $key => $value) 
-            if($value == file_create_url($file['filepath']))
-              $already_there = $key;
-      
-        if(!$already_there && !$file['remove'])
-          $fs_pointer[$to_attach . '_' . count($fs_pointer)] = file_create_url($file['filepath']);
-        if($already_there && $file['remove'])
-          $fs_pointer[$already_there] = "";
+          foreach($to_get_there[$imagegroup] as $go_to) {
+            if($multigroups[$go_to])
+              $fs_pointer = &$fs_pointer[$go_to][$go_to][$go_to . '_0'];
+            else
+              $fs_pointer = &$fs_pointer[$go_to][$go_to];
+          }
 
+          $fs_pointer[$imagegroup . '_' . count($fs_pointer)] = file_create_url($file['filepath']);
+        }
       }
     }
   }
