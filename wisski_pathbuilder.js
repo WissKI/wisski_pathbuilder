@@ -65,18 +65,20 @@ Drupal.behaviors.correct_autocomplete_select = function () {
 
 
 $(document).ready(function(){
+  /*
   $('form').bind("keydown", function(e) {
     var code = e.keyCode || e.which; 
     if (code  == 13) {
-//          alert("don't!");               
+          alert("don't!");               
        e.preventDefault();
        return false;
     }
   });
+  */
   
-  $('.form-item').keydown(function(event) {
+  $('.form-item input').keydown(function(event) {
     if (event.which == 13) {
-//      alert("stop!");
+      //alert("stop!");
       event.preventDefault();
       event.stopPropagation();
       event.preventDefault();
