@@ -311,7 +311,8 @@ function wisski_pathbuilder_getText($node) {
   if (module_exists('wisski_textproc') && function_exists('wisski_textproc_convert_tei_to_html')) {
     return wisski_textproc_convert_tei_to_html($node2->body); // transform tei to html
   } else {
-    return $node2->body;  // normal output
+    return check_markup($node2->body, variable_get('wisski_editor_input_format', FILTER_FORMAT_DEFAULT));
+ //   return $node2->body;  // normal output
   }
   // end TEI support
   // old:
