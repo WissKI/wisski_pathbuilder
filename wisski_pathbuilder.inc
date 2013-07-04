@@ -1141,6 +1141,9 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
           foreach($sparql['triples'] as $triple) {
             $delete .= ($triple .  " . ");
           }
+          
+          if(!drupal_validate_utf8($value))
+            $value = utf8_encode($value);
 
           $delete .= $condition . '. FILTER ( ?out = "' . wisski_store_escape_sparql_literal($value) . '" ) }';
 //          drupal_set_message("I am deleting: " . htmlentities($delete));
@@ -1162,7 +1165,11 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
           if($value) {
 //            drupal_set_message(serialize($values));
 //            drupal_set_message("key ist: $key value ist: " . $value);
-                                
+            
+            
+            if(!drupal_validate_utf8($value))
+              $value = utf8_encode($value);
+
             //preg_match('/\d+$/', $key, $matches);
             //$auth_key = $matches[0];
             
