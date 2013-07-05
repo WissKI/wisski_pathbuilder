@@ -1087,9 +1087,7 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
           $fs = $fs[$row['id']];
 //          $ov = $ov[$row['id']];  
         }
-//      drupal_set_message("Looking for: " . $row['id']);
-//      drupal_set_message("fs is: " . serialize($fs));
-//      drupal_set_message("fieldtype: " . $row['fieldtype']);    
+      
         if(is_array($fs[$row['id']])) {
           $values = $fs[$row['id']];
           $authinfo = $fs[$row['id']];
@@ -1097,7 +1095,14 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
           $values = array($row['id'] => $fs[$row['id']]);
           $authinfo = $fs;
         }
-
+        
+        if($row['fieldtype'] == 'checkboxes' || $row['fieldtype'] == 'select' || $row['fieldtype'] == 'radios') {
+          if(!empty($values))
+            foreach($values as $key => $value)
+              if(empty($value))
+                unset($values[$key]);
+        }
+        
         $values = wisski_pathbuilder_filter_auth_data($values);
         
 
