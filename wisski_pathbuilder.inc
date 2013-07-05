@@ -2776,14 +2776,14 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
           $results = $out['result']['rows'];
 
           $grp_val = false;
-
-          foreach($results as $key => $value) {
-            for($i = 0; $i<floor(count($samepart)/2); $i++) { 
+          if(!empty($results))
+            foreach($results as $key => $value) {
+              for($i = 0; $i<floor(count($samepart)/2); $i++) { 
+                $grp_val['x' . $i] = $value['x' . $i];
+                $grp_val['y' . $i] = $samepart['y' . $i];
+              }
               $grp_val['x' . $i] = $value['x' . $i];
-              $grp_val['y' . $i] = $samepart['y' . $i];
             }
-            $grp_val['x' . $i] = $value['x' . $i];
-          }
           
 //          drupal_set_message(serialize($grp_val)); 	    
           if($grp_val) {
