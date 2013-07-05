@@ -141,10 +141,10 @@ function wisski_pathbuilder_getGroupsForConcept($con, $is_individual = TRUE, $ty
   $mycon = $con;
 
   if($is_individual) {  
-    $q = "SELECT ?z WHERE { <$con> rdf:type ?z }";
+    $q = "SELECT ?z WHERE { <$con> rdf:type ?z } LIMIT 1";
     
-    if($rows = wisski_store_getObj()->wisski_ARCAdapter_getStore()->query($q, 'rows')) {
-      $mycon = $rows[0]['z'];
+    if($row = wisski_store_getObj()->wisski_ARCAdapter_getStore()->query($q, 'row')) {
+      $mycon = $row['z'];
     }
   }
   
@@ -2701,13 +2701,10 @@ function _wisski_pathbuilder_gen_triples_of_group($form, &$form_state, $groupid,
  * @author Mark Fichtner
  **/
 function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$paths, $input = 1, $sparqlcondition = "", $treetype = array(1)) {  
-
   drupal_add_js(drupal_get_path('module', 'wisski_pathbuilder') . '/wisski_pathbuilder.js');
   $vars = variable_get("wisski_pathbuilder_templateids", array());
-  //print_r("build with formstate: " . serialize($form_state));
-  global $user;
 
-  //drupal_set_message("parent id is: " . $parentID);
+  global $user;
 
   $resultgroup = db_query("SELECT * FROM {wisski_template} WHERE is_group = 1 AND enabled = 1 AND id = $parentID");
   $resultfields = db_query("SELECT * FROM {wisski_template} WHERE enabled = 1 AND group_id = " . $parentID . " ORDER BY weight ASC");
@@ -2740,30 +2737,15 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
 
   $base = array();
   $basestr = "";
-//  if(isset($form_state['values']
-//  $my_state = $form_state['
   $elementbase = "";
   $multigroup = 1;
   $is_multi_group = FALSE;
 
   if(isset($grouparr['id'])) {
-  
-//    $condition = ("FILTER ( ?x" . (floor(count($samepart)/2)) . " = <" . wisski_store_getObj()->wisski_ARCAdapter_delNamespace($node->title). "> )");
-    
-  //$sparql = wisski_pathbuilder_get_sparql($parentID, $sparqlcondition);
-    
-  //$groups = wisski_store_getObj()->wisski_ARCAdapter_getStore()->query($sparql);
-  
-  //$wrapperarr = array;
-  
-  
-  
-  //drupal_set_message(serialize($groups));
-  //foreach($groups as $key => $group) {
     $wrapper = "";
-    //$wrapper = &$wrapperarr[$key]; 
-    //$wrapper .= '<div id="wki-collector">';
-    if($input == 0) {
+
+    // view, paths
+    if($input <= 0) {
       $pos = floor(count($samepart)/2);
           
       $sparql = wisski_pathbuilder_get_sparql($parentID, $sparqlcondition, FALSE, 0, TRUE, array("?x" . $pos));
@@ -2772,8 +2754,7 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
     
       drupal_add_js('misc/collapse.js');
       $wrapper .= '<fieldset class="collapsible wki-fieldset-view"><legend>' . $grouparr['name'] . '</legend>'; // <- Schwule schreibweise :P
-    } else { //if ($input == 2) { // edit
-//      drupal_set_message($grouparr['fieldtype']);
+    } else { // edit, add, ...
     
       if($grouparr['fieldtype'] != "ontogroup") {
         $form['form'][$grouparr['id']] = array(
@@ -2924,38 +2905,8 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
         $multigroup = $grp_val;
       }
     }
-      /*
-    } else {
-      $form['form'][$grouparr['id']] = array(
-          '#collapsed' => FALSE,
-          '#type' => 'fieldset',
-          '#attributes' => array('class' => 'wki-fieldset-edit wisski_formedit'),
-          '#collapsible' => '1',
-          '#title' => t($grouparr['name']),
-          '#tree' => TRUE,
-          );
-      $base = &$form['form'][$grouparr['id']];
-      $form_state = $form_state[$grouparr['id']];
-    }
-    */
-  /*
-  } else {
-    if($input == 0) 
-      return "";
-    return array();
-    $form['form'] = array(
-        '#collapsible' => TRUE,
-        '#collapsed' => FALSE,
-        '#type' => 'fieldset',
-        '#tree' => TRUE,
-        '#title' => t(''),
-        );
-    $base = &$form['form'];
-  */
   }
   
-
-//  drupal_set_message("input is: " . serialize($paths));
 
   $iterator = 0;
   $wasHere = array();
@@ -2985,22 +2936,6 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
 //  drupal_set_message(htmlentities($spqcondition));
   
   $resultfields = db_query("SELECT * FROM {wisski_template} WHERE enabled = 1 AND group_id = " . $parentID . " ORDER BY weight ASC");
- 
-//  drupal_set_message("multicount ist: " . serialize($multicount));
-  
-//  drupal_set_message("base ist: " . serialize($base));
-    
-  //$tmpbase = &$base;
-  
-//  drupal_set_message("multicount ist: " . serialize($is_multi_group));
-
-//  drupal_set_message("base before: " . serialize($base));
-  
-//  $tmpbase = &$base[$grouparr['id']];
-
-//  drupal_set_message("base before: " . serialize($tmpbase));
-  
-//  drupal_set_message("fs before: " . serialize($form_state));
   
   if(!$is_multi_group) {
     $tmpbase = &$base[$grouparr['id']];
@@ -3017,7 +2952,7 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
   while($arr = db_fetch_array($resultfields)) {
     $iterator++;
     $continue = 0;
-    
+
     foreach($treetype as $type) 
       if(($arr['type'] % $type) == 0)
         $continue = 1;
@@ -3025,20 +2960,22 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
     if(!$continue)
       continue;
 
+    // this is a data-field
     if($arr['is_group'] == 0) {
-      if($input == 1) {  
-        //drupal_set_message("Add!!" . serialize($form_state) . "\n has text: " . $text . "\n has id: " . $arr['id']);
-        //drupal_set_message(serialize($base[$arr['id']]));
-        //drupal_set_message("state: " . serialize($form_state['values'][$arr['id']]));
-        $text = $fs[$arr['id']];
-        //if(empty($text))
-//        $default = $form_state['post'][$arr['id']];
 
+      // this is for the create-dialogue
+      if($input == 1) {  
+        
+        // get the value
+        $text = $fs[$arr['id']];
+        
+        // construct a new data field
         $tmpbase[$arr['id']] = _wisski_pathbuilder_get_field($arr);
-//        $base[$arr['id']]['#default_value'] = $default;
-//        drupal_set_message(serialize($base[$arr['id']]));
+        
+        // initialize authority
         $tmpbase['auth_data_' . $arr['id']] = _wisski_pathbuilder_get_autocomplete_data_field($arr);
 
+        // is this a checkbox or a select field?
         if($arr['fieldtype'] == 'checkboxes' || $arr['fieldtype'] == 'select' ) {
         
           $tmpbase[$arr['id']] = _wisski_pathbuilder_get_field($arr);
@@ -3051,7 +2988,7 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
           } else {
             $tmpbase[$arr['id']]['#default_value'] = $def;
           }
-
+        // or is it any duplicateable field?
         } else if( $arr['fieldtype'] == 'ontotext' || $arr['fieldtype'] == 'images' || $arr['fieldtype'] == 'coordinates' ) {
 
           $tmp = array();
@@ -3063,16 +3000,12 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
 
           $tmpVal['#type']   = 'markup';
 
-//          drupal_set_message("here fs is: " . serialize($fs[$arr['id']]['button']));
-
           if(!empty($fs[$arr['id']]["button"])) {
             $keys = array_keys($fs[$arr['id']]["button"]);
             $uuid = str_replace("wisski_pathbuilder_dupl_button_", "", $keys[0]); 
           } else {
             $uuid = wisski_get_uid();
           }
-          
-//          drupal_set_message("this is: " . $uuid);
 
           $tmpVal['#prefix'] = '<div id="wisski_pathbuilder_ontotext_wrapper_' . $uuid . '">'; // $arr['id']
           $tmpVal['#suffix'] = '</div>';
@@ -3101,9 +3034,6 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
           } else {
             $count = 1;
           }        
-          
-          //drupal_set_message("I am here: " . serialize($fs));
-
 
           for($tmpi=0; $tmpi<$count; $tmpi++) {
             $tmpVal[$arr['id'] . '_' . $tmpi] = _wisski_pathbuilder_get_field($arr);
@@ -3130,21 +3060,13 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
           $valArr['button'] = $tmp;
 //          $valArr[$arr['id'] . '_' . $arr['id']] = $tmpAuto;
           $tmpbase[$arr['id']] = $valArr;
+        // or anything else? usually a normal textfield?
         } else {
-/*
-          //drupal_set_message("Getting: " .$arr['id'] . "with value: " . $form_state['post'][$arr['id']]);
-          if(!isset($form_state['wisskiValues']) || empty($form_state['wisskiValues'][$arr['id']]))
-            $tmpbase[$arr['id']]['#default_value'] = $form_state['values'][$arr['id']];
-          else if(!isset($form_state['values']) || empty($form_state['values']))
-            $tmpbase[$arr['id']]['#default_value'] = $form_state['post'][$arr['id']];
-          else
-            $tmpbase[$arr['id']]['#default_value'] = $form_state['wisskiValues'][$arr['id']];
-          //drupal_set_message("base is: " . serialize($base));
-          */
-          
           $tmpbase[$arr['id']]['#default_value'] = $fs[$arr['id']];
           $tmpbase['auth_data_' . $arr['id']]['#default_value'] = $fs['auth_data_' . $arr['id']];
         }
+        
+      // if this is the path-view
       } else if($input == -1) {
 
         $q = wisski_pathbuilder_get_sparql($arr['id'], $spqcondition);
@@ -3187,7 +3109,7 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
             '#description' => t(''),
             );
 
-        // Edit    
+      // Edit    
       } else if($input == 2) {
 
         $q = wisski_pathbuilder_get_sparql($arr['id'], $spqcondition, FALSE, 0, TRUE, array("?out"));
@@ -3210,17 +3132,6 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
             $def[$result1['out']] = $result1['out'];
           }
 
-/*          $default = false;
-
-          if(!$default && (!isset($form_state['wisskiValues']) || empty($form_state['wisskiValues'][$arr['id']])))
-            $default = $form_state['values'][$arr['id']];
-          if(!$default && (!isset($form_state['values']) || empty($form_state['values'])))
-            $default = $form_state['post'][$arr['id']];
-          if(!$default && (isset($form_state['wisskiValues']) && !is_null($form_state['wisskiValues'][$arr['id']])))
-            $default = $form_state['wisskiValues'][$arr['id']];
-          if(!$default)
-            $default = $def;
- */     
           if(!empty($fs[$arr['id']])) {
             $tmpbase[$arr['id']]['#default_value'] = $fs[$arr['id']];
             $tmpbase['auth_data_' . $arr['id']]['#default_value'] = $fs['auth_data_' . $arr['id']];
@@ -3230,15 +3141,6 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
             $paths[$arr['id']]['path'] = $out['result']['rows'];
           }
           
- 
-//          drupal_set_message("setting: " . $base[$arr['id']]['#default_value']);
-          
-/*          
-          if(!empty($form_state['wisskiValues'][$arr['id']]))
-            $base[$arr['id']]['#default_value'] = $form_state['wisskiValues'][$arr['id']];
-          else
-            $base[$arr['id']]['#default_value'] = $def;
-*/
         } else if( $arr['fieldtype'] == 'ontotext' || $arr['fieldtype'] == 'images' || $arr['fieldtype'] == 'coordinates'  ) {
 
           $tmp = array();
@@ -3325,20 +3227,6 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
 
           $tmpbase[$arr['id']] = _wisski_pathbuilder_get_field($arr);
           $tmpbase['auth_data_' . $arr['id']] = _wisski_pathbuilder_get_autocomplete_data_field($arr);
-          
-/*          $default = false;
-
-          if(!$default && (!isset($form_state['wisskiValues']) || empty($form_state['wisskiValues'][$arr['id']])))
-            $default = $form_state['values'][$arr['id']];
-          if(!$default && (!isset($form_state['values']) || empty($form_state['values'])))
-            $default = $form_state['post'][$arr['id']];
-          if(!$default && (isset($form_state['wisskiValues']) && !is_null($form_state['wisskiValues'][$arr['id']])))
-            $default = $form_state['wisskiValues'][$arr['id']];
-          if(!$default)
-            $default = $result;
- */
- 
-//           drupal_set_message($fs[$arr['id']] . " : " . $arr['id'] . " : " . serialize($out['result']['rows']));
  
           if(empty($fs[$arr['id']])) {
             $tmpbase[$arr['id']]['#default_value'] = $result;
@@ -3349,26 +3237,23 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
             $tmpbase['auth_data_' . $arr['id']]['#default_value'] = $fs['auth_data_' . $arr['id']];
           }
         }
-        
-//        drupal_set_message($arr['id'] . " : " . serialize($out['result']['rows']));
+
 
         $tmpbase[$arr['id']]['#disabled'] = $input == 0 ? TRUE : FALSE;
 
-        // view
+      // view
       } else {
+
+        // get the data value
         if($arr['disamb'] > 0)
           $q = wisski_pathbuilder_get_sparql($arr['id'], $spqcondition, FALSE, 0, TRUE, array("?x" . ($arr['disamb']-1) ,"?out"));
         else
           $q = wisski_pathbuilder_get_sparql($arr['id'], $spqcondition, FALSE, 0, TRUE, array("?out"));
 
-//        drupal_set_message("path " . $arr['id'] . " got value: " . htmlentities($q));
-
         if(!isset($wasHere[$q]))
           $wasHere[$q] = 0;
         $out = wisski_store_getObj()->wisski_ARCAdapter_getStore()->query($q);
-        
-//        drupal_set_message("path " . $arr['id'] . " got value: " . serialize($out));
-        
+
         
         $resultarr = $out['result']['rows'][$wasHere[$q]];
         $result = $out['result']['rows'][$wasHere[$q]]['out'];
@@ -3376,7 +3261,7 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
         $wasHere[$q] = $wasHere[$q] +1;
         $elementwrap = "";
 
-
+        
         if($arr['fieldtype'] == 'checkboxes' || $arr['fieldtype'] == 'select' ) {
 
           $elementwrap .= '<div class="wki-data-item"><div class="wki-data-label">' . check_plain($arr['name']) . '</div>';
@@ -3393,6 +3278,7 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
             $elements = $elementwrap . $elements . '</div>';          
 
         } else if( $arr['fieldtype'] == 'ontotext' || $arr['fieldtype'] == 'images' || $arr['fieldtype'] == 'coordinates'  ) {
+
           $elementwrap .= '<div class="wki-data-item"><div class="wki-data-label">' . check_plain($arr['name']) . '</div>';
           $elements = "";
 
@@ -3423,39 +3309,35 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
             $elements = $elementwrap . $elements . '</div>';
 
         } else {
+       
           $elements = "";
           $result = check_plain($result);
           if($arr['disamb'] > 0) {
             if($resultarr[('x' . ($arr['disamb']-1))]) {
-
+       
               $groupids = wisski_pathbuilder_getInternaGroupsForConcept($resultarr[('x' . ($arr['disamb']-1))]);
+              
               if($groupids && count($groupids) > 0)
                 $elements .= '<div class="wki-data-item"><div class="wki-data-label">' . check_plain($arr['name']) . '</div>' . '<div class="wki-data-value"><a href="' . $resultarr[('x' . ($arr['disamb']-1))] . '">' . $result . '</a></div></div>';
               else
                 $elements .= '<div class="wki-data-item"><div class="wki-data-label">' . check_plain($arr['name']) . '</div>' . '<div class="wki-data-value">' . $result . '</div></div>';
+       
             }
           } else {
+       
             if($result)
               $elements .= '<div class="wki-data-item"><div class="wki-data-label">' . check_plain($arr['name']) . '</div>' . '<div class="wki-data-value">' . $result . '</div></div>';
           }
         }
+      
       }
 
       $elementbase .= $elements;
 
     } else {
-//      $parents[] = $grouparr['id'];
-//      $parents[] = $grouparr['id'];
-//      if(!empty($form_state[$grouparr['id']]))
-//        $fs = $form_state[$grouparr['id']];
-//      if(!empty($fs[$grouparr['id']]))
-//        $fs = $fs[$grouparr['id']];
-//      if($is_multi_group) {
-//        $parents[] = $grouparr['id'] . "_" . $multiit;
-//        $fs = $fs[$grouparr['id'] . "_" . $multiit];  
-//      }
+
       $got = _wisski_pathbuilder_recursive_build_group($fs, $arr['id'], $paths, $input, $spqcondition, $treetype);
-//      drupal_set_message("getting values from subgroup: " . $arr['id'] . " with fs " . serialize($fs));
+
       if(count($got) > 0) {
 
         if($input == 0)
