@@ -3384,7 +3384,7 @@ function _wisski_pathbuilder_get_field($arr) {
       '#default_value' => "",
       '#description' => t(''),
       '#size' => $arr['fieldsize'],
-      '#attributes' => array('class' => 'wisski_display' . $arr['displaytype'], 'title' => $arr['description']),	
+      '#attributes' => array('class' => 'wisski_display' . $arr['displaytype'], 'wisski_help' => $arr['description']),	
       '#required' => $arr['mandatory'],
       );
 
