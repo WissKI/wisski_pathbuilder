@@ -4035,6 +4035,9 @@ function wisski_pathbuilder_generateGroupName($title, $groupid, $data = NULL) {
   
   if(empty($title_from_db) || empty($title_from_db['title'])) {
     $out = _wisski_pathbuilder_generateGroupName(wisski_store_getObj()->wisski_ARCAdapter_addNamespace($title), $groupid, $data);
+
+    if($out == $oldtitle)
+      return check_plain($out);
     
     if(!empty($title_from_db) && empty($title_from_db['title']))
       db_query("UPDATE {wisski_title_cache} SET title = '" . mysql_real_escape_string($out) . "' WHERE uri = '" . mysql_real_escape_string($title) . "'");
