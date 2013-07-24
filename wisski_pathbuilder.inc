@@ -1033,13 +1033,6 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
   $fs_pointer = $fs_pointer[$groupid];
   $ov_pointer = $ov_pointer[$groupid];
   
-  //drupal_set_message("fsp is: " . serialize($fs_pointer));
-  //drupal_set_message("ovp: " . serialize($ov_pointer));
-  
-  //if($my_group['fieldtype'] == "ontogroup")
-  //  $form_state[
-  //else
-
   $iterator = array($groupid => $groupid);
 
 //  drupal_set_message("fuerr diese gruppe: " . serialize($form_state));
@@ -1082,10 +1075,12 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
            $condition = "FILTER ( ?x0 = <" . $main_subject . ">)";
          }
       } else {
-    
-        if($row['fieldtype'] == 'images' || $row['fieldtype'] == 'ontotext') {
+        $row_information = module_invoke_all("pb_fieldinformation", $row['fieldtype']);
+         
+        //if($row['fieldtype'] == 'images' || $row['fieldtype'] == 'ontotext') {
+        //if($row_information['edit_type'] == "multiple") {
+        if($row_information['add_button']) {
           $fs = $fs[$row['id']];
-//          $ov = $ov[$row['id']];  
         }
       
         if(is_array($fs[$row['id']])) {
@@ -1096,7 +1091,8 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
           $authinfo = $fs;
         }
         
-        if($row['fieldtype'] == 'checkboxes' || $row['fieldtype'] == 'select' || $row['fieldtype'] == 'radios') {
+        //if($row['fieldtype'] == 'checkboxes' || $row['fieldtype'] == 'select' || $row['fieldtype'] == 'radios') {
+        if($row_information['delete_empty']) {
           if(!empty($values))
             foreach($values as $key => $value)
               if(empty($value))
@@ -1161,8 +1157,7 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
         // add the new ones
         
         foreach($values as $key => $value) {
-//          drupal_set_message(serialize($values));
-//          drupal_set_message("key ist: $key value ist: " . $value);	
+ 
           if(empty($value) || $value == "" || $old_values[$key] == $value)
             continue;
 //          drupal_set_message("paths sind: " . serialize($paths));
@@ -1419,8 +1414,7 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
               wisski_store_addNodeForTriple($triple);
               */
           }
-        }
-        
+        }        
       }  
     }
   }
@@ -2976,49 +2970,54 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
         
         // construct a new data field
         $tmpbase[$arr['id']] = _wisski_pathbuilder_get_field($arr);
-        
+
         // initialize authority
         $tmpbase['auth_data_' . $arr['id']] = _wisski_pathbuilder_get_autocomplete_data_field($arr);
-
-        // is this a checkbox or a select field?
-        if($arr['fieldtype'] == 'checkboxes' || $arr['fieldtype'] == 'select' ) {
         
-          $tmpbase[$arr['id']] = _wisski_pathbuilder_get_field($arr);
-          $tmpbase['auth_data_' . $arr['id']] = _wisski_pathbuilder_get_autocomplete_data_field($arr);
-          $def = array();
-                                      
-          if(!empty($fs[$arr['id']])) {
-            $tmpbase[$arr['id']]['#default_value'] = $fs[$arr['id']];
+        $row_information = module_invoke_all("pb_fieldinformation", $arr['fieldtype']);
+
+        if($row_information['edit_type'] == "multiple") {
+          // is this a checkbox or a select field?
+          //if($arr['fieldtype'] == 'checkboxes' || $arr['fieldtype'] == 'select' ) {
+          if($row_information['delete_empty'] && !$row_information['add_button']) {
+//            $tmpbase[$arr['id']] = _wisski_pathbuilder_get_field($arr);
+//            $tmpbase['auth_data_' . $arr['id']] = _wisski_pathbuilder_get_autocomplete_data_field($arr);
+            $def = array();
+            
+            if(!empty($fs[$arr['id']])) {
+              $tmpbase[$arr['id']]['#default_value'] = $fs[$arr['id']];
+              $tmpbase['auth_data_' . $arr['id']]['#default_value'] = $fs['auth_data_' . $arr['id']];
+            } else {
+              $tmpbase[$arr['id']]['#default_value'] = $def;
+            }            
+          
+          // or is it any duplicateable field?
+          } else if(!$row_information['delete_empty'] && !$row_information['add_button']) {
             $tmpbase['auth_data_' . $arr['id']]['#default_value'] = $fs['auth_data_' . $arr['id']];
-          } else {
-            $tmpbase[$arr['id']]['#default_value'] = $def;
-          }
-        // or is it any duplicateable field?
-        } else if( $arr['fieldtype'] == 'ontotext' || $arr['fieldtype'] == 'images' || $arr['fieldtype'] == 'coordinates' ) {
+          } else if($row_information['add_button']) { //else if( $arr['fieldtype'] == 'ontotext' || $arr['fieldtype'] == 'images' || $arr['fieldtype'] == 'coordinates' ) {
 
-          $tmp = array();
-          $tmpVal = array();
-          $tmpAuto = array();
-          $valArr = array();
-          $def = array();
+            $tmp = array();
+            $tmpVal = array();
+            $tmpAuto = array();
+            $valArr = array();
+            $def = array();
 
+            $tmpVal['#type']   = 'markup';
+          
+            if(!empty($fs[$arr['id']]["button"])) {
+              $keys = array_keys($fs[$arr['id']]["button"]);
+              $uuid = str_replace("wisski_pathbuilder_dupl_button_", "", $keys[0]); 
+            } else {
+              $uuid = wisski_get_uid();
+            }
 
-          $tmpVal['#type']   = 'markup';
+            $tmpVal['#prefix'] = '<div id="wisski_pathbuilder_ontotext_wrapper_' . $uuid . '">'; // $arr['id']
+            $tmpVal['#suffix'] = '</div>';
+            $tmpVal['#tree'] = TRUE;
+            $myparents = $parents;
+            $myparents[] = $arr['id'];              
 
-          if(!empty($fs[$arr['id']]["button"])) {
-            $keys = array_keys($fs[$arr['id']]["button"]);
-            $uuid = str_replace("wisski_pathbuilder_dupl_button_", "", $keys[0]); 
-          } else {
-            $uuid = wisski_get_uid();
-          }
-
-          $tmpVal['#prefix'] = '<div id="wisski_pathbuilder_ontotext_wrapper_' . $uuid . '">'; // $arr['id']
-          $tmpVal['#suffix'] = '</div>';
-          $tmpVal['#tree'] = TRUE;
-          $myparents = $parents;
-          $myparents[] = $arr['id'];              
-
-          $tmp['wisski_pathbuilder_dupl_button_' . $uuid] = array(
+            $tmp['wisski_pathbuilder_dupl_button_' . $uuid] = array(
               '#type' => 'image_button', 
               '#src' => 'sites/all/themes/blendedmalts/pics/ico_add.png',
               '#attributes' => array('class' => 'wki-button-dupl wisski_dupl_single', 
@@ -3029,42 +3028,43 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
                 'event' => 'click',
                 'path' => 'wisski_pathbuilder/duplicate/' . $arr['id'], //ahah_helper_path($path_structure),
                 'wrapper' => 'wisski_pathbuilder_ontotext_wrapper_' . $uuid, // $arr['id']
-                ),
-              );
+              ),
+            );
 
 
-          if(!empty($fs[$arr['id']][$arr['id']])) {
-            $cnt = wisski_pathbuilder_filter_auth_data($fs[$arr['id']][$arr['id']]);
-            $count = count($cnt);
-          } else {
-            $count = 1;
-          }        
-
-          for($tmpi=0; $tmpi<$count; $tmpi++) {
-            $tmpVal[$arr['id'] . '_' . $tmpi] = _wisski_pathbuilder_get_field($arr);
-            $tmpVal[$arr['id'] . '_auth_data_' . $tmpi] = _wisski_pathbuilder_get_autocomplete_data_field($arr);
-            if($tmpi > 0) {
-              $tmpVal[$arr['id'] . '_' . $tmpi]['#prefix'] = '<div class="wki-no-label">'; 
-              $tmpVal[$arr['id'] . '_' . $tmpi]['#suffix'] = '</div>';
-            }
-            if(!empty($fs[$arr['id']][$arr['id']][$arr['id'] . '_' . $tmpi])) {
-              $tmpVal[$arr['id'] . '_' . $tmpi]['#default_value'] = $fs[$arr['id']][$arr['id']][$arr['id'] . '_' . $tmpi];
-//              drupal_set_message("setting authdata!" . serialize($fs));
-              $tmpVal[$arr['id'] . '_auth_data_' . $tmpi]['#default_value'] = $fs[$arr['id']][$arr['id']][$arr['id'] . '_auth_data_' . $tmpi];
+            if(!empty($fs[$arr['id']][$arr['id']])) {
+              $cnt = wisski_pathbuilder_filter_auth_data($fs[$arr['id']][$arr['id']]);
+              $count = count($cnt);
             } else {
-              $tmpVal[$arr['id'] . '_' . $tmpi]['#default_value'] = $out['result']['rows'][$tmpi]['out'];
-              $paths[$arr['id'] . '_' . $tmpi]['path'] = $out['result']['rows'][$tmpi];
+              $count = 1;
+            }        
+
+            for($tmpi=0; $tmpi<$count; $tmpi++) {
+              $tmpVal[$arr['id'] . '_' . $tmpi] = _wisski_pathbuilder_get_field($arr);
+              $tmpVal[$arr['id'] . '_auth_data_' . $tmpi] = _wisski_pathbuilder_get_autocomplete_data_field($arr);
+              if($tmpi > 0) {
+                $tmpVal[$arr['id'] . '_' . $tmpi]['#prefix'] = '<div class="wki-no-label">'; 
+                $tmpVal[$arr['id'] . '_' . $tmpi]['#suffix'] = '</div>';
+              }
+              if(!empty($fs[$arr['id']][$arr['id']][$arr['id'] . '_' . $tmpi])) {
+                $tmpVal[$arr['id'] . '_' . $tmpi]['#default_value'] = $fs[$arr['id']][$arr['id']][$arr['id'] . '_' . $tmpi];
+//              drupal_set_message("setting authdata!" . serialize($fs));
+                $tmpVal[$arr['id'] . '_auth_data_' . $tmpi]['#default_value'] = $fs[$arr['id']][$arr['id']][$arr['id'] . '_auth_data_' . $tmpi];
+              } else {
+                $tmpVal[$arr['id'] . '_' . $tmpi]['#default_value'] = $out['result']['rows'][$tmpi]['out'];
+                $paths[$arr['id'] . '_' . $tmpi]['path'] = $out['result']['rows'][$tmpi];
+              }
+
+              $def[$arr['id'] . '_' . $tmpi] = $tmpVal[$arr['id'] . '_' . $tmpi]['#default_value']; 
             }
 
-            $def[$arr['id'] . '_' . $tmpi] = $tmpVal[$arr['id'] . '_' . $tmpi]['#default_value']; 
-          }
-
-          $valArr['#default_value'] = $def;
+            $valArr['#default_value'] = $def;
 //          $valArr['button'] = $tmp;
-          $valArr[$arr['id']] = $tmpVal;
-          $valArr['button'] = $tmp;
+            $valArr[$arr['id']] = $tmpVal;
+            $valArr['button'] = $tmp;
 //          $valArr[$arr['id'] . '_' . $arr['id']] = $tmpAuto;
-          $tmpbase[$arr['id']] = $valArr;
+            $tmpbase[$arr['id']] = $valArr;
+          }
         // or anything else? usually a normal textfield?
         } else {
           $tmpbase[$arr['id']]['#default_value'] = $fs[$arr['id']];
@@ -3126,53 +3126,71 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
         $result = $out['result']['rows'][$wasHere[$q]]['out'];
         $wasHere[$q] = $wasHere[$q] +1;
 
-        if($arr['fieldtype'] == 'checkboxes' || $arr['fieldtype'] == 'select' ) {
+        $row_information = module_invoke_all("pb_fieldinformation", $arr['fieldtype']);
+        
+        if($row_information['edit_type'] == "multiple") {
+          // is this a checkbox or a select field?
+          if($row_information['delete_empty'] && !$row_information['add_button']) {
+        //if($arr['fieldtype'] == 'checkboxes' || $arr['fieldtype'] == 'select' ) {
 
-          $tmpbase[$arr['id']] = _wisski_pathbuilder_get_field($arr);
-          $tmpbase['auth_data_' . $arr['id']] = _wisski_pathbuilder_get_autocomplete_data_field($arr);
-          $def = array();
+            $tmpbase[$arr['id']] = _wisski_pathbuilder_get_field($arr);
+            $tmpbase['auth_data_' . $arr['id']] = _wisski_pathbuilder_get_autocomplete_data_field($arr);
+            $def = array();
 
           
-          foreach($out['result']['rows'] as $result1) {
-            $def[$result1['out']] = $result1['out'];
-          }
+            foreach($out['result']['rows'] as $result1) {
+              $def[$result1['out']] = $result1['out'];
+            }
 
-          if(!empty($fs[$arr['id']])) {
-            $tmpbase[$arr['id']]['#default_value'] = $fs[$arr['id']];
-            $tmpbase['auth_data_' . $arr['id']]['#default_value'] = $fs['auth_data_' . $arr['id']];
-          } else {
-            $tmpbase[$arr['id']]['#default_value'] = $def;
+            if(!empty($fs[$arr['id']])) {
+              $tmpbase[$arr['id']]['#default_value'] = $fs[$arr['id']];
+              $tmpbase['auth_data_' . $arr['id']]['#default_value'] = $fs['auth_data_' . $arr['id']];
+            } else {
+              $tmpbase[$arr['id']]['#default_value'] = $def;
 //            drupal_set_message(serialize($out));
-            $paths[$arr['id']]['path'] = $out['result']['rows'];
-          }
-          
-        } else if( $arr['fieldtype'] == 'ontotext' || $arr['fieldtype'] == 'images' || $arr['fieldtype'] == 'coordinates'  ) {
+              $paths[$arr['id']]['path'] = $out['result']['rows'];
+            }
+          } else if(!$row_information['delete_empty'] && !$row_information['add_button']) {
+            
+            $tmpbase[$arr['id']] = _wisski_pathbuilder_get_field($arr);
+            $tmpbase['auth_data_' . $arr['id']] = _wisski_pathbuilder_get_autocomplete_data_field($arr);
+ 
+            if(empty($fs[$arr['id']])) {
+              $tmpbase[$arr['id']]['#default_value'] = $result;
+//   	         drupal_set_message(serialize($resultarr));
+              $paths[$arr['id']]['path'] = $resultarr;
+            } else {
+              $tmpbase[$arr['id']]['#default_value'] = $fs[$arr['id']];
+              $tmpbase['auth_data_' . $arr['id']]['#default_value'] = $fs['auth_data_' . $arr['id']];
+            }
 
-          $tmp = array();
-          $tmpVal = array();
-          $tmpAuto = array();
-          $valArr = array();
-          $def = array();
+          } else if($row_information['add_button']) {
+
+            $tmp = array();
+            $tmpVal = array();
+            $tmpAuto = array();
+            $valArr = array();
+            $def = array();
 //          $uuid = wisski_get_uid();
 
-          if(!empty($fs[$arr['id']]["button"])) {
-            $keys = array_keys($fs[$arr['id']]["button"]);
-            $uuid = str_replace("wisski_pathbuilder_dupl_button_", "", $keys[0]); 
-          } else {
-            $uuid = wisski_get_uid();
-          }
+            if(!empty($fs[$arr['id']]["button"])) {
+              $keys = array_keys($fs[$arr['id']]["button"]);
+              $uuid = str_replace("wisski_pathbuilder_dupl_button_", "", $keys[0]); 
+            } else {
+              $uuid = wisski_get_uid();
+            }	
 
-          $tmpVal['#type']   = 'markup';
-          $tmpVal['#prefix'] = '<div id="wisski_pathbuilder_ontotext_wrapper_' . $uuid . '">';
-          $tmpVal['#suffix'] = '</div>';
-          $tmpVal['#tree'] = TRUE;
+            $tmpVal['#type']   = 'markup';
+            $tmpVal['#prefix'] = '<div id="wisski_pathbuilder_ontotext_wrapper_' . $uuid . '">';
+            $tmpVal['#suffix'] = '</div>';
+            $tmpVal['#tree'] = TRUE;
           
-          $myparents = $parents;
-          $myparents[] = $arr['id'];
-         
+            $myparents = $parents;
+            $myparents[] = $arr['id'];
+           
                             
 
-          $tmp['wisski_pathbuilder_dupl_button_' . $uuid] = array(
+            $tmp['wisski_pathbuilder_dupl_button_' . $uuid] = array(
               '#type' => 'image_button',
               '#src' => 'sites/all/themes/blendedmalts/pics/ico_add.png',
               '#attributes' => array('class' => 'wki-button-dupl wisski_dupl_single', 
@@ -3187,47 +3205,48 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
               );
             
 //          drupal_set_message("fs is: " . serialize($fs[$arr['id']]));
-          if(!empty($fs[$arr['id']][$arr['id']]) > 0) {
-            $cnt = wisski_pathbuilder_filter_auth_data($fs[$arr['id']][$arr['id']]);
-            $count = count($cnt);
+            if(!empty($fs[$arr['id']][$arr['id']]) > 0) {
+              $cnt = wisski_pathbuilder_filter_auth_data($fs[$arr['id']][$arr['id']]);
+              $count = count($cnt);
 //            $count = count($fs[$arr['id']][$arr['id']]);
-          } else {
-            $count = count($out['result']['rows']);
-          }
+            } else {
+              $count = count($out['result']['rows']);
+            }
           
-          if($count == 0)
-            $count = 1;        
+            if($count == 0)
+              $count = 1;        
 
           
           //drupal_set_message("I am here: " . serialize($fs));
 
-          for($tmpi=0; $tmpi<$count; $tmpi++) {
-            $tmpVal[$arr['id'] . '_' . $tmpi] = _wisski_pathbuilder_get_field($arr);
-            $tmpVal[$arr['id'] . '_auth_data_' . $tmpi] = _wisski_pathbuilder_get_autocomplete_data_field($arr);
-            if($tmpi > 0) {
-              $tmpVal[$arr['id'] . '_' . $tmpi]['#prefix'] = '<div class="wki-no-label">'; 
-              $tmpVal[$arr['id'] . '_' . $tmpi]['#suffix'] = '</div>';
+            for($tmpi=0; $tmpi<$count; $tmpi++) {
+              $tmpVal[$arr['id'] . '_' . $tmpi] = _wisski_pathbuilder_get_field($arr);
+              $tmpVal[$arr['id'] . '_auth_data_' . $tmpi] = _wisski_pathbuilder_get_autocomplete_data_field($arr);
+              if($tmpi > 0) {
+                $tmpVal[$arr['id'] . '_' . $tmpi]['#prefix'] = '<div class="wki-no-label">'; 
+                $tmpVal[$arr['id'] . '_' . $tmpi]['#suffix'] = '</div>';
+              }
+
+              if(!is_null($fs[$arr['id']][$arr['id']][$arr['id'] . '_' . $tmpi])) {
+                $tmpVal[$arr['id'] . '_' . $tmpi]['#default_value'] = $fs[$arr['id']][$arr['id']][$arr['id'] . '_' . $tmpi];
+                $tmpVal[$arr['id'] . '_auth_data_' . $tmpi]['#default_value'] = $fs[$arr['id']][$arr['id']][$arr['id'] . '_auth_data_' . $tmpi];
+              } else {
+                $paths[$arr['id'] . '_' . $tmpi]['path'] = $out['result']['rows'][$tmpi];
+                $tmpVal[$arr['id'] . '_' . $tmpi]['#default_value'] = $out['result']['rows'][$tmpi]['out'];
+              }
+
+              $def[$arr['id'] . '_' . $tmpi] = $tmpVal[$arr['id'] . '_' . $tmpi]['#default_value']; 
             }
 
-            if(!is_null($fs[$arr['id']][$arr['id']][$arr['id'] . '_' . $tmpi])) {
-              $tmpVal[$arr['id'] . '_' . $tmpi]['#default_value'] = $fs[$arr['id']][$arr['id']][$arr['id'] . '_' . $tmpi];
-              $tmpVal[$arr['id'] . '_auth_data_' . $tmpi]['#default_value'] = $fs[$arr['id']][$arr['id']][$arr['id'] . '_auth_data_' . $tmpi];
-            } else {
-              $paths[$arr['id'] . '_' . $tmpi]['path'] = $out['result']['rows'][$tmpi];
-              $tmpVal[$arr['id'] . '_' . $tmpi]['#default_value'] = $out['result']['rows'][$tmpi]['out'];
-            }
-
-            $def[$arr['id'] . '_' . $tmpi] = $tmpVal[$arr['id'] . '_' . $tmpi]['#default_value']; 
-          }
-
-          $valArr['#default_value'] = $def;
+            $valArr['#default_value'] = $def;
 
 //          $valArr['button'] = $tmp;
-          $valArr[$arr['id']] = $tmpVal;
-          $valArr['button'] = $tmp;
+            $valArr[$arr['id']] = $tmpVal;
+            $valArr['button'] = $tmp;
   //        $valArr[$arr['id'] . '_' . $arr['id']] = $tmpAuto;
-          $tmpbase[$arr['id']] = $valArr;
-
+            $tmpbase[$arr['id']] = $valArr;
+          }
+        // "normal" field
         } else {
 
           $tmpbase[$arr['id']] = _wisski_pathbuilder_get_field($arr);
@@ -3265,53 +3284,58 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
 
         $wasHere[$q] = $wasHere[$q] +1;
         $elementwrap = "";
-
         
-        if($arr['fieldtype'] == 'checkboxes' || $arr['fieldtype'] == 'select' ) {
+        $row_information = module_invoke_all("pb_fieldinformation", $arr['fieldtype']);
 
-          $elementwrap .= '<div class="wki-data-item"><div class="wki-data-label">' . check_plain($arr['name']) . '</div>';
-          $elements = "";
-          foreach($out['result']['rows'] as $result1) {
-            if($arr['disamb'] > 0) { 
-              $elements .= '<div class="wki-data-value"><a href="' . $result1[('x' . ($arr['disamb']-1))] . '">' . check_plain($result1['out']) . '</a></div>';
-            } else {
-              $elements .= '<div class="wki-data-value">' . check_plain($result1['out']) . '</div>';
-            }
-          }
+        if($row_information['edit_type'] == "multiple") {
+          // is this a checkbox or a select field?
+          if($row_information['delete_empty'] || !$row_information['add_button']) {        
+        //if($arr['fieldtype'] == 'checkboxes' || $arr['fieldtype'] == 'select' ) {
 
-          if($elements != "")
-            $elements = $elementwrap . $elements . '</div>';          
-
-        } else if( $arr['fieldtype'] == 'ontotext' || $arr['fieldtype'] == 'images' || $arr['fieldtype'] == 'coordinates'  ) {
-
-          $elementwrap .= '<div class="wki-data-item"><div class="wki-data-label">' . check_plain($arr['name']) . '</div>';
-          $elements = "";
-
-          if(!empty($fs['wisskiValues'][$arr['id']])) {
-            $count = count($fs['wisskiValues'][$arr['id']]);
-          } else {
-            $count = count($out['result']['rows']);
-          }        
-
-          for($tmpi=0; $tmpi<$count; $tmpi++) {
-
-            if($arr['disamb'] > 0) {
-              if($out['result']['rows'][$tmpi]['out']) {
-                $groupids = wisski_pathbuilder_getInternaGroupsForConcept($out['result']['rows'][$tmpi][('x' . ($arr['disamb']-1))]);
-                if($groupids && count($groupids) > 0)
-                  $elements .= '<div class="wki-data-value"><a href="' . $out['result']['rows'][$tmpi][('x' . ($arr['disamb']-1))] . '">' . check_plain($out['result']['rows'][$tmpi]['out']) . '</a></div>';
-                else
-                  $elements .= '<div class="wki-data-value">' . check_plain($out['result']['rows'][$tmpi]['out']) . '</div>';
+            $elementwrap .= '<div class="wki-data-item"><div class="wki-data-label">' . check_plain($arr['name']) . '</div>';
+            $elements = "";
+            foreach($out['result']['rows'] as $result1) {
+              if($arr['disamb'] > 0) { 
+                $elements .= '<div class="wki-data-value"><a href="' . $result1[('x' . ($arr['disamb']-1))] . '">' . check_plain($result1['out']) . '</a></div>';
+              } else {
+                $elements .= '<div class="wki-data-value">' . check_plain($result1['out']) . '</div>';
               }
-            } else {
-              $elements .= '<div class="wki-data-value">' . check_plain($out['result']['rows'][$tmpi]['out']) . '</div>';
             }
-            $def[$arr['id'] . '_' . $tmpi] = $tmpVal[$arr['id'] . '_' . $tmpi]['#default_value']; 
+
+            if($elements != "")
+              $elements = $elementwrap . $elements . '</div>';          
+
+          } else { //if( $arr['fieldtype'] == 'ontotext' || $arr['fieldtype'] == 'images' || $arr['fieldtype'] == 'coordinates'  ) {
+          
+            $elementwrap .= '<div class="wki-data-item"><div class="wki-data-label">' . check_plain($arr['name']) . '</div>';
+            $elements = "";
+
+            if(!empty($fs['wisskiValues'][$arr['id']])) {
+              $count = count($fs['wisskiValues'][$arr['id']]);
+            } else {
+              $count = count($out['result']['rows']);
+            }        
+
+            for($tmpi=0; $tmpi<$count; $tmpi++) {
+
+              if($arr['disamb'] > 0) {
+                if($out['result']['rows'][$tmpi]['out']) {
+                  $groupids = wisski_pathbuilder_getInternaGroupsForConcept($out['result']['rows'][$tmpi][('x' . ($arr['disamb']-1))]);
+                  if($groupids && count($groupids) > 0)
+                    $elements .= '<div class="wki-data-value"><a href="' . $out['result']['rows'][$tmpi][('x' . ($arr['disamb']-1))] . '">' . check_plain($out['result']['rows'][$tmpi]['out']) . '</a></div>';
+                  else
+                    $elements .= '<div class="wki-data-value">' . check_plain($out['result']['rows'][$tmpi]['out']) . '</div>';
+                }
+              } else {
+                $elements .= '<div class="wki-data-value">' . check_plain($out['result']['rows'][$tmpi]['out']) . '</div>';
+              }
+              $def[$arr['id'] . '_' . $tmpi] = $tmpVal[$arr['id'] . '_' . $tmpi]['#default_value']; 
+            }
+
+
+            if($elements != "")
+              $elements = $elementwrap . $elements . '</div>';
           }
-
-
-          if($elements != "")
-            $elements = $elementwrap . $elements . '</div>';
 
         } else {
        
@@ -3389,26 +3413,7 @@ function _wisski_pathbuilder_get_field($arr) {
       );
 
 
-
-  if($arr['fieldtype'] == 'checkboxes') {
-    unset($out['#default_value']);
-    $out['#options'] = wisski_pathbuilder_getOptionArray($arr['id']);
-  } else if($arr['fieldtype'] == 'select') {
-    $out['#default_value'] = array();
-    $out['#options'] = wisski_pathbuilder_getOptionArray($arr['id']);
-    $out['#multiple'] = $arr['repeatable'];
-  } else if($arr['fieldtype'] == 'radios') {
-    $out['#default_value'] = "";
-    $out['#options'] = wisski_pathbuilder_getOptionArray($arr['id']);
-  } else if($arr['fieldtype'] == 'ontotext' || $arr['fieldtype'] == 'images' || $arr['fieldtype'] == 'coordinates') {
-    $out['#type'] = "textfield";    
-    $out['#autocomplete_path'] = ('wisski_pathbuilder/autocomplete/' . $arr['id']);
-    $out['#maxlength'] = 2000;
-  } else {
-    $out['#autocomplete_path'] = ('wisski_pathbuilder/autocomplete/' . $arr['id']);
-    $out['#maxlength'] = 2000;
-  }
-
+  $out = module_invoke_all("pb_changesettings", $arr['fieldtype'], $arr['id'], $out);
 
   return $out;
 }
@@ -3770,17 +3775,19 @@ function wisski_pathbuilder_edit_item(&$form_state, $type, $item, $menu) {
       '#value' => "<div></div>",
       );
 
-  if($data['is_group'] == 0) 
-  $form['item']['fieldtype'] = array(
+  if($data['is_group'] == 0) {    
+    $optionTypes = module_invoke_all('pb_fieldtypes');    
+    
+    $form['item']['fieldtype'] = array(
       '#default_value' => $data['fieldtype'],
       '#key_type' => 'associative',
       '#multiple_toggle' => '1',
       '#type' => 'select',
-      '#options' => array("textfield" => "textfield", "textarea" => "textarea", 
-        "checkboxes" => "checkboxes", "select" => "select", "radios" => "radios", 
-        "ontotext" => "ontotext", "images" => "images", "description" => "description", "coordinates" => "coordinates"),
+      '#options' => $optionTypes,
       '#title' => 'Visualization of the path',
       );
+      
+  }
 
   $types = array();
   if(!($data['type'] % 2))
