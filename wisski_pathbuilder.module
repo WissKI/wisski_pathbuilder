@@ -270,6 +270,10 @@ function wisski_pathbuilder_block($op = 'list', $delta = 0, $edit = array()) {
 }
 
 function wisski_pathbuilder_getText($node) {
+  if(!user_access('wisski access templateView')) {
+    return "";
+  }
+
   $indiv = $node->title;
 
   $namespaces = wisski_store_getObj()->wisski_ARCAdapter_getNamespaces();
