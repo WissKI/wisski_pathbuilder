@@ -813,7 +813,7 @@ function wisski_pathbuilder_template_edit($form_state, $node) {
 
 //  drupal_set_message("building with fs: " . serialize($fs));
   $paths = array();
-  $form = _wisski_pathbuilder_recursive_build_group($fs, $groupid, $paths, 2, $sparqlcondition, array(2, 7));
+  $form = _wisski_pathbuilder_recursive_build_group($fs, $groupid, $paths, 2, $sparqlcondition, array(2, 3));
 //  $form = _wisski_pathbuilder_recursive_build_group($fs, $groupid, $paths, 2, $sparqlcondition, 5);
 //  drupal_set_message(serialize($paths));
   $form['#cache'] = TRUE;
@@ -1004,8 +1004,10 @@ function wisski_pathbuilder_template_edit_submit($form, &$form_state) {
   // update title 
   $displaytitle = _wisski_pathbuilder_generateGroupName($node->title, $groupid);
   db_query("UPDATE {wisski_title_cache} SET title = '" . mysql_real_escape_string($displaytitle) . "' WHERE uri = '" . mysql_real_escape_string(wisski_store_getObj()->wisski_ARCAdapter_delNamespace($node->title)) . "'");
-  // delete cached image uris
-  db_query("DELETE FROM {wisski_image_cache} WHERE uri = '" . mysql_real_escape_string(wisski_store_getObj()->wisski_ARCAdapter_delNamespace($node->title)) . "'");
+  
+  // notify all other modules  
+  module_invoke_all("pb_group_updated", wisski_store_getObj()->wisski_ARCAdapter_delNamespace($node->title));
+  
   
   unset($form_state['storage']);
   $form_state['redirect'] = wisski_store_getObj()->wisski_ARCAdapter_delNamespace($node->title);
@@ -2299,7 +2301,7 @@ function wisski_pathbuilder_get_sparql($id, $conditions = "", $triplewise = FALS
 
 
 
-function wisski_pathbuilder_build_group($form_state, $parentID, $treetype = 2) {
+function wisski_pathbuilder_build_group($form_state, $parentID, $treetype = array(2,3)) {
   global $base_path;
   module_load_include('inc', 'node', 'node.pages');
   
@@ -2328,7 +2330,7 @@ function wisski_pathbuilder_build_group($form_state, $parentID, $treetype = 2) {
   if(!empty($form_state['values']))
     $form_state = $form_state['values'];
     
-  $form = _wisski_pathbuilder_recursive_build_group($form_state, $parentID, $paths, 1, "", array($treetype)); 
+  $form = _wisski_pathbuilder_recursive_build_group($form_state, $parentID, $paths, 1, "", $treetype); 
 //  $form = array_merge($form, $tmp);
 
   $form['group'] = array(
