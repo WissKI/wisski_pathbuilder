@@ -512,3 +512,19 @@ function wisski_pathbuilder_pb_changesettings($fieldtype, $id, $preset) {
 
   return $my_preset;
 }
+
+
+function wisski_pathbuilder_rescue_values($form, &$form_state) {
+  
+  $form_state['wisskiValues'] = $form_state['values'];
+  
+//  drupal_set_message("rescued!");  
+  if(empty($form_state['wisskiValues']['old_values'])) {
+    $form_state['wisskiValues']['old_values'] = $form_state['values']['defaults'];
+  }
+  
+  if(empty($form_state['wisskiValues']['paths'])) {
+    $form_state['wisskiValues']['paths'] = $form_state['values']['paths'];
+  }
+  
+}

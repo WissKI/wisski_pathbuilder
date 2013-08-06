@@ -1006,8 +1006,7 @@ function wisski_pathbuilder_template_edit_submit($form, &$form_state) {
   db_query("UPDATE {wisski_title_cache} SET title = '" . mysql_real_escape_string($displaytitle) . "' WHERE uri = '" . mysql_real_escape_string(wisski_store_getObj()->wisski_ARCAdapter_delNamespace($node->title)) . "'");
   
   // notify all other modules  
-  module_invoke_all("pb_group_updated", wisski_store_getObj()->wisski_ARCAdapter_delNamespace($node->title));
-  
+  module_invoke_all("pb_individual_updated", wisski_store_getObj()->wisski_ARCAdapter_delNamespace($node->title));
   
   unset($form_state['storage']);
   $form_state['redirect'] = wisski_store_getObj()->wisski_ARCAdapter_delNamespace($node->title);
@@ -1997,11 +1996,16 @@ function wisski_pathbuilder_path_view($form_state, $node) {
  * @author Mark Fichtner
  */
 function wisski_pathbuilder_get_sparql($id, $conditions = "", $triplewise = FALSE, $startpoint = 0, $inverse = TRUE, $returnvars = array()) {
+  if(empty($id) || !is_numeric($id)) {
+    drupal_set_message("WissKITemplate: tried to get path with empty id." . serialize(debug_backtrace()), "error");
+    return "";
+  }
+  
   $result = db_query("SELECT * FROM {wisski_template} WHERE id = " . $id);
   $item = db_fetch_array($result);
 
   if(!$item) {
-    drupal_set_message("WisskiTemplate: Could not resolve path or group with id $id - there is no such id.","error");
+    drupal_set_message("WisskiTemplate: Could not resolve path or group with id " . serialize($id) . " - there is no such id." . debug_backtrace(),"error");
     return "";
   }
 
@@ -2329,6 +2333,9 @@ function wisski_pathbuilder_build_group($form_state, $parentID, $treetype = arra
   
   if(!empty($form_state['values']))
     $form_state = $form_state['values'];
+    
+  if(!is_array($treetype))
+    $treetype = array($treetype);
     
   $form = _wisski_pathbuilder_recursive_build_group($form_state, $parentID, $paths, 1, "", $treetype); 
 //  $form = array_merge($form, $tmp);
