@@ -27,10 +27,8 @@ Drupal.behaviors.wisski_override_autocomplete = function () {
 
       }
       
-//      if(this.selected && keycode == 13) {
-//        alert("Da kam enter!");
-//        return false;
-//      }
+      if(this.selected && keycode == 13) {
+      }
 
       // Hide popup
       var popup = this.popup;
@@ -47,7 +45,7 @@ Drupal.behaviors.wisski_override_autocomplete = function () {
       }
 
       this.selected = false;      
-      return true;
+      return false;
     };
 
   }
@@ -76,14 +74,33 @@ $(document).ready(function(){
   });
   */
   
+  var jQueryVersion = jQuery.prototype.jquery.split(".");
+  
+  if(jQueryVersion[0] <= 1 && jQueryVersion[1] < 7) {
+  
+    $('.form-item input').live("keydown", function(event) {
+      if (event.which == 13) {
+        event.preventDefault();
+      }
+    });
+  } else {
+    $('.form-item input').on("keydown", function(event) {
+      if (event.which == 13) {
+        event.preventDefault();
+      }
+    });
+  }
+  
+  /*
   $('.form-item input').keydown(function(event) {
     if (event.which == 13) {
-      //alert("stop!");
+//      alert("stop!");
+//      Drupal.jsAC.prototype.hidePopup(event.keyCode);
       event.preventDefault();
-      event.stopPropagation();
-      event.preventDefault();
-//      alert("stopped!");
-      return false;
+      //event.stopPropagation();
+      //event.preventDefault();
+//~      alert("stopped!");
+//      return false;
 //      alert("haha!");
 //      event.preventDefault();
 //      event.stopPropagation();
@@ -96,6 +113,7 @@ $(document).ready(function(){
 //  if ($("#autocomplete").length == 0) {
     }
   });
+  */
   
 });
 
