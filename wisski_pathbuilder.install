@@ -45,6 +45,31 @@ function wisski_pathbuilder_schema() {
 
   );
 
+  $schema['wisski_weight'] = array(
+    'description' => 'This table caches the weight of a field.',
+    'fields' => array(
+      'nid' => array(
+        'type' => 'int',
+        'not null' => true,
+        'description' => 'The nid of the node.',
+      ),
+
+      'field_id' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => true,
+        'description' => 'The id of the field.',
+      ),
+
+      'weight' => array(
+        'type' => 'int',
+        'not null' => true,
+        'description' => 'The weight of the field.',
+      ),
+    ), 
+
+  );
+
   $schema['wisski_template'] = array(
     'description' => 'The table that stores the owl-templates for the wisski project.',
     'fields' => array(
