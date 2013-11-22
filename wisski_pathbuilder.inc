@@ -848,26 +848,15 @@ function wisski_pathbuilder_getInternaGroupIDForIndividual($ind) {
   return wisski_pathbuilder_getGroupIDForIndividual($ind, 2);
 }
 
-/*
+
 function theme_individual_node_form($form) {
 
-  drupal_set_message(serialize($form));
+//  drupal_set_message(serialize($form));
+  return drupal_render($form);
 
-  $header = array(
-    t('Name'),
-    t('Weight'),
-  );
-  $rows = array();
-
-  foreach (array_filter($form, ) as $key) {
-    if (isset($form[$key]['name'])) {
-      drupal_set_message("Hallo welt: $key");  
-    }
-  }
-  _wisski_pathbuilder_find_and_render_onto_text($form);
 
 }
-
+/*
 function _wisski_pathbuilder_filter_wrappers($key) {
   if($key 
 }
@@ -1277,8 +1266,10 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
             
 //            drupal_set_message(serialize($fs));
 //            drupal_set_message(serialize($my_parent_array));
-            db_query("DELETE FROM {wisski_weight} WHERE field_id = '" . serialize($current_parent_array) . "' AND nid = " . $node->nid . "");
-            db_query("INSERT INTO {wisski_weight} (weight, nid, field_id) VALUES ($weight, " . $node->nid . ", '" . serialize($my_parent_array) . "')");
+            db_query("DELETE FROM {wisski_weight} WHERE field_id = '%s' AND nid = " . $node->nid . "", serialize($my_parent_array));
+            if(!drupal_validate_utf8($value))
+              $value = utf8_encode($value);
+            db_query("INSERT INTO {wisski_weight} (weight, nid, field_id, value) VALUES ($weight, " . $node->nid . ", '%s', '" . mysql_real_escape_string($value) . "')", serialize($my_parent_array));
 //            drupal_set_message("inserted weight $weight to node id " . $node->nid . " with key " . serialize($my_parent_array));
           }
  
@@ -3357,7 +3348,6 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
 
           
           //drupal_set_message("I am here: " . serialize($fs));
-            
             for($tmpi=0; $tmpi<$count; $tmpi++) {
               $tmpVal[$arr['id'] . '_' . $tmpi] = _wisski_pathbuilder_get_field($arr);
               $tmpVal[$arr['id'] . '_auth_data_' . $tmpi] = _wisski_pathbuilder_get_autocomplete_data_field($arr);
@@ -3365,8 +3355,8 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
               $my_parent_array = $current_parent_array;
               $my_parent_array[] = (string)$arr['id'];
               $my_parent_array[] = (string)($arr['id'] . '_' . $tmpi);
-              
-              $weightresult = db_query("SELECT weight FROM {wisski_weight} WHERE nid = '" . arg(1) . "' AND field_id = '" . serialize($my_parent_array) . "'");
+                          
+              $weightresult = db_query("SELECT weight FROM {wisski_weight} WHERE nid = '" . arg(1) . "' AND field_id = '%s'", serialize($my_parent_array));
 //              drupal_set_message("I am looking for: " . serialize($my_parent_array));
               
               
@@ -3390,6 +3380,7 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
                 '#type' => 'weight',
                 '#title' => t('Weight'),
                 '#weight' => $weight,
+                '#attributes' => array('class' => 'wki-weight'),
                 '#default_value' => $tmpVal[$arr['id'] . '_' . $tmpi]['#weight'],
                 '#delta' => 10,
 //                '#description' => t('Optional. In the menu, the heavier items will sink and the lighter items will be positioned nearer the top.')
@@ -3412,11 +3403,17 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
               
               $def[$arr['id'] . '_' . $tmpi] = $tmpVal[$arr['id'] . '_' . $tmpi]['#default_value']; 
             }
+            
+            
+            
+//            drupal_add_tabledrag('wisski_pathbuilder_ontotext_wrapper_' . $uuid . '', 'order', 'sibling', 'wki-weight');
 
             $valArr['#default_value'] = $def;
 
 //          $valArr['button'] = $tmp;
             $valArr[$arr['id']] = $tmpVal; //theme('wisski_pathbuilder_theme_multi', $tmpVal);
+            
+            
             $valArr['button'] = $tmp;
   //        $valArr[$arr['id'] . '_' . $arr['id']] = $tmpAuto;
             $tmpbase[$arr['id']] = $valArr;
