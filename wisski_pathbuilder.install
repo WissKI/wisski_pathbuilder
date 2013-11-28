@@ -55,10 +55,17 @@ function wisski_pathbuilder_schema() {
       ),
 
       'field_id' => array(
-        'type' => 'varchar',
-        'length' => 255,
+        'type' => 'text',
+        'size' => 'big',
         'not null' => true,
         'description' => 'The id of the field.',
+      ),
+
+      'value' => array(
+        'type' => 'text',
+        'size' => 'big',
+        'not null' => true,
+        'description' => 'The value of the field.',
       ),
 
       'weight' => array(
@@ -66,7 +73,7 @@ function wisski_pathbuilder_schema() {
         'not null' => true,
         'description' => 'The weight of the field.',
       ),
-    ), 
+    ),
 
   );
 

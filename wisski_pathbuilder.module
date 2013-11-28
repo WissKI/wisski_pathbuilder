@@ -210,13 +210,109 @@ function wisski_form_forward($node) {
  * Implemenation of hook_theme().
  */
 function wisski_pathbuilder_theme() {
-
+  drupal_set_message("reloaded theme!");
   return array(
     'wisski_pathbuilder_overview_form' => array(
       'file' => 'wisski_pathbuilder.inc',
       'arguments' => array('form' => NULL),
     ),
+    'wisski_pathbuilder_dragtable' => array(
+      'file' => 'wisski_pathbuilder.inc',
+      'arguments' => array('element' => NULL),
+    ),
+    
+    /*
+    'individual_node_form' => array(
+      'file' => 'wisski_pathbuilder.inc',
+      'arguments' => array('form' => NULL),
+    ),
+    */
   );
+}
+
+function wisski_pathbuilder_elements() {
+  $type['wisski_pathbuilder_dragtable'] = array('#prefix' => '', '#suffix' => '');
+  return $type;
+}
+
+function theme_wisski_pathbuilder_dragtable($element) {
+  //drupal_set_message("Hallo drag table");
+//  drupal_set_message(htmlentities(serialize($element)));
+
+  $table_rows = array();
+  $remaining = array();
+  
+  //drupal_set_message(serialize($element['#children']));
+
+/*  
+  if(is_array($element)) {
+    foreach($element as $key => $value) {
+      $table_row = array();
+      if(is_array($value) && isset($value['#type'])) {
+        //drupal_set_message(serialize($value));
+        if($value['#type'] == "weight") {
+          continue; // weights are added with their fields below
+        } else if($value['#type'] == "hidden") {
+          // hidden goes into the remaining parts
+          $remaining .= drupal_render($value);
+        } else {
+          // anything else - get it here!
+          drupal_set_message(serialize($value));
+          $table_row[] = drupal_render($value);
+          $table_row[] = drupal_render($element['weight_' . $key]);
+          $table_rows[] = array('data' => $table_row, 'class' => 'draggable');
+        }
+      }
+    }
+  }
+  */
+
+  //drupal_set_message(htmlentities($element['#children']));
+  preg_match_all('/<div class=\"form-item\".*?id="(.*?)".*?>([^`]*?)<\/div>/', $element['#children'], $matches);
+  $remaining = preg_replace('/<div class=\"form-item\".*?id="(.*?)".*?>([^`]*?)<\/div>/', '', $element['#children']);  
+//  drupal_set_message("matches: " . serialize($matches));
+  
+  $data = array();
+  $weightkey = array();
+  
+  foreach($matches[1] as $key => $value) {
+    $data[$value] = $matches[0][$key];
+    //drupal_set_message("strpos auf $value: " . serialize(strpos("-weight-", $value)));
+    if(strpos($value, "-weight-") !== FALSE) {
+      $weightkey[] = $value;
+    }
+  }
+  
+  //drupal_set_message("data: " . serialize($data));
+  //drupal_set_message(serialize($weightkey));
+  
+  foreach($weightkey as $key) {
+    $table_row = array();
+    $datakey = str_replace("-weight-", "-", $key);
+    $table_row[] = $data[$datakey];
+    $table_row[] = $data[$key];
+    $table_rows[] = array('data' => $table_row, 'class' => 'draggable');
+  }
+  
+  /*
+  if(is_array($element)) {
+    $table_rows[] = array('data' => $element['#children'], 'class' => 'draggable');
+  }
+  */
+  
+  //drupal_set_message(serialize($table_rows));
+  
+  $header = array('Field', 'Weight');
+  $id = $element['#attributes']['id'];
+  
+  $form = array('#value' => theme('table', $header, $table_rows, array('id' => $id)));
+  
+  $output = drupal_render($form);
+  $output .= $remaining;
+
+  drupal_add_tabledrag($id, 'order', 'sibling', 'wki-weight');
+
+  return $output;
 }
 
 /**

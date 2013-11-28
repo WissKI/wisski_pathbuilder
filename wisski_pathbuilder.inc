@@ -562,7 +562,7 @@ function wisski_pathbuilder_duplicate($pathid = 1) {
   $form = form_get_cache($form_build_id, $form_state);
 
 //  drupal_set_message("hahaha!");
-//  drupal_set_message(serialize($pathid));
+//  drupal_set_message(serialize($_POST));
 
   $args = $form['#parameters'];
   $form_id = array_shift($args);
@@ -584,7 +584,7 @@ function wisski_pathbuilder_duplicate($pathid = 1) {
 
 //  $offset = wisski_pathbuilder_getFormOffset($pathid);
     $offset = $form_state['clicked_button']['#parents'];
-//  drupal_set_message("looking for offset: " . serialize($form_state));
+//  drupal_set_message("looking for offset: " . serialize($form));
 
 //  drupal_set_message("clicked button is: " . serialize($form_state['clicked_button']));
 
@@ -595,15 +595,14 @@ function wisski_pathbuilder_duplicate($pathid = 1) {
   
   unset($offset[count($offset)-1]);
   unset($offset[count($offset)-1]);
-//  drupal_set_message("offset is: " . serialize($offset));
-  
+    
   $offset[] = $offset[count($offset)-1];
   
 //  drupal_set_message("starting with " . serialize($out));
   foreach($offset as $off) {
     $out = $out[$off];
 //    $lastOff = $off;
-//    drupal_set_message("subtree of " . serialize($off) . " is: " . serialize($out));
+//    drupal_set_message("subtree of " . serialize($off) . " is: " . htmlentities(serialize($out)));
 //    foreach($out as $key => $v)
 //      drupal_set_message("subkey could be: $key");
   }
@@ -642,9 +641,11 @@ function wisski_pathbuilder_filter_auth_data($array) {
 
 function wisski_pathbuilder_filter_weight_data($array) {
   $newarray = array();
-  foreach($array as $key => $value)
+  foreach($array as $key => $value) {
     if(strpos($key, 'weight_') === FALSE)
       $newarray[$key] = $value;
+  }
+  
   return $newarray;
 }
 
@@ -852,10 +853,13 @@ function wisski_pathbuilder_getInternaGroupIDForIndividual($ind) {
 function theme_individual_node_form($form) {
 
 //  drupal_set_message(serialize($form));
-  return drupal_render($form);
+  return $form;
+//  return drupal_render($form);
 
 
 }
+
+
 /*
 function _wisski_pathbuilder_filter_wrappers($key) {
   if($key 
@@ -1237,7 +1241,7 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
           foreach($sparql['triples'] as $triple) {
             $delete .= ($triple .  " . ");
           }
-          
+                    
           if(!drupal_validate_utf8($value))
             $value = utf8_encode($value);
 
@@ -3131,7 +3135,8 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
             $def = array();
 
             $tmpVal['#type']   = 'markup';
-          
+//            $tmpVal['#type'] = 'wisski_pathbuilder_dragtable';          
+
             if(!empty($fs[$arr['id']]["button"])) {
               $keys = array_keys($fs[$arr['id']]["button"]);
               $uuid = str_replace("wisski_pathbuilder_dupl_button_", "", $keys[0]); 
@@ -3141,6 +3146,7 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
 
             $tmpVal['#prefix'] = '<div id="wisski_pathbuilder_ontotext_wrapper_' . $uuid . '">'; // $arr['id']
             $tmpVal['#suffix'] = '</div>';
+//            $tmpVal['#type'] = "wisskidragtable";
             $tmpVal['#tree'] = TRUE;
             $myparents = $parents;
             $myparents[] = $arr['id'];              
@@ -3190,6 +3196,7 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
             $valArr['#default_value'] = $def;
 //          $valArr['button'] = $tmp;
             $valArr[$arr['id']] = $tmpVal;
+//            drupal_set_message(serialize($tmpVal));
             $valArr['button'] = $tmp;
 //          $valArr[$arr['id'] . '_' . $arr['id']] = $tmpAuto;
             $tmpbase[$arr['id']] = $valArr;
@@ -3310,9 +3317,11 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
               $uuid = wisski_get_uid();
             }	
 
-            $tmpVal['#type']   = 'markup';
+//            $tmpVal['#type']   = 'markup';
+            $tmpVal['#type'] = 'wisski_pathbuilder_dragtable';
             $tmpVal['#prefix'] = '<div id="wisski_pathbuilder_ontotext_wrapper_' . $uuid . '">';
             $tmpVal['#suffix'] = '</div>';
+//            $tmpVal['#attributes'] = '
             $tmpVal['#tree'] = TRUE;
           
             $myparents = $parents;
@@ -3338,6 +3347,7 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
             if(!empty($fs[$arr['id']][$arr['id']]) > 0) {
               $cnt = wisski_pathbuilder_filter_auth_data($fs[$arr['id']][$arr['id']]);
               $cnt = wisski_pathbuilder_filter_weight_data($cnt);
+              $count = count($cnt);
 //            $count = count($fs[$arr['id']][$arr['id']]);
             } else {
               $count = count($out['result']['rows']);
@@ -3349,6 +3359,7 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
           
           //drupal_set_message("I am here: " . serialize($fs));
             for($tmpi=0; $tmpi<$count; $tmpi++) {
+          
               $tmpVal[$arr['id'] . '_' . $tmpi] = _wisski_pathbuilder_get_field($arr);
               $tmpVal[$arr['id'] . '_auth_data_' . $tmpi] = _wisski_pathbuilder_get_autocomplete_data_field($arr);
               
@@ -3385,7 +3396,9 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
                 '#delta' => 10,
 //                '#description' => t('Optional. In the menu, the heavier items will sink and the lighter items will be positioned nearer the top.')
               );
-              //} 
+              //}
+              
+              
 
               if($tmpi > 0) {
                 $tmpVal[$arr['id'] . '_' . $tmpi]['#prefix'] = '<div class="wki-no-label">'; 
@@ -3403,16 +3416,12 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
               
               $def[$arr['id'] . '_' . $tmpi] = $tmpVal[$arr['id'] . '_' . $tmpi]['#default_value']; 
             }
-            
-            
-            
-//            drupal_add_tabledrag('wisski_pathbuilder_ontotext_wrapper_' . $uuid . '', 'order', 'sibling', 'wki-weight');
-
+      
             $valArr['#default_value'] = $def;
 
 //          $valArr['button'] = $tmp;
             $valArr[$arr['id']] = $tmpVal; //theme('wisski_pathbuilder_theme_multi', $tmpVal);
-            
+            $valArr[$arr['id']]['#attributes'] = array('id' => 'wki_drag_table'. $uuid);
             
             $valArr['button'] = $tmp;
   //        $valArr[$arr['id'] . '_' . $arr['id']] = $tmpAuto;
