@@ -1256,13 +1256,13 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
         // add the new ones
         
         foreach($values as $key => $value) {
-          //drupal_set_message("key ist: $key value ist: " . $value);
-          //drupal_set_message(serialize($fs[$row['id']]));
-          //drupal_set_message("weight is: " . serialize($fs[$row['id']][('weight_' . $key)]));
-          //drupal_set_message(serialize($fs));
+//          drupal_set_message("key ist: $key value ist: " . $value);
+//          drupal_set_message(serialize($fs[$row['id']]));
+//          drupal_set_message("weight is: " . serialize($fs[$row['id']][('weight_' . $key)]));
+//          drupal_set_message(serialize($fs));
 
           // save the weight
-          if(is_array($fs[$row['id']]) && !empty($fs[$row['id']]['weight_' . $key])) {
+          if(is_array($fs[$row['id']]) && isset($fs[$row['id']]['weight_' . $key])) {
             $weight = $fs[$row['id']]['weight_' . $key];
             $my_parent_array = $current_parent_array;
             $my_parent_array[] = (string)$row['id'];
@@ -1270,10 +1270,15 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
             
 //            drupal_set_message(serialize($fs));
 //            drupal_set_message(serialize($my_parent_array));
-            db_query("DELETE FROM {wisski_weight} WHERE field_id = '%s' AND nid = " . $node->nid . "", serialize($my_parent_array));
+            global $base_url;
+            $title = $node->title;
+            if(!strpos($base_url, $title))
+              $title = wisski_store_getObj()->wisski_ARCAdapter_delNamespace($title);
+
+            db_query("DELETE FROM {wisski_weight} WHERE field_id = '%s' AND title = '" . $title . "'", serialize($my_parent_array));
             if(!drupal_validate_utf8($value))
               $value = utf8_encode($value);
-            db_query("INSERT INTO {wisski_weight} (weight, nid, field_id, value) VALUES ($weight, " . $node->nid . ", '%s', '" . mysql_real_escape_string($value) . "')", serialize($my_parent_array));
+            db_query("INSERT INTO {wisski_weight} (weight, title, field_id, value) VALUES ($weight, '" . $title . "', '%s', '" . mysql_real_escape_string($value) . "')", serialize($my_parent_array));
 //            drupal_set_message("inserted weight $weight to node id " . $node->nid . " with key " . serialize($my_parent_array));
           }
  
@@ -3366,8 +3371,16 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
               $my_parent_array = $current_parent_array;
               $my_parent_array[] = (string)$arr['id'];
               $my_parent_array[] = (string)($arr['id'] . '_' . $tmpi);
-                          
-              $weightresult = db_query("SELECT weight FROM {wisski_weight} WHERE nid = '" . arg(1) . "' AND field_id = '%s'", serialize($my_parent_array));
+              
+              $node = node_load(arg(1));
+              $title = $node->title;
+              
+              global $base_url;
+                            
+              if(!strpos($base_url, $title))
+                $title = wisski_store_getObj()->wisski_ARCAdapter_delNamespace($title);
+              
+              $weightresult = db_query("SELECT weight FROM {wisski_weight} WHERE title = '" . $title . "' AND field_id = '%s'", serialize($my_parent_array));
 //              drupal_set_message("I am looking for: " . serialize($my_parent_array));
               
               
