@@ -2671,7 +2671,11 @@ function wisski_pathbuilder_check_auth_triples($key, $value, $form_state) {
     
     $input = $parts[3];
     if($input == $value ) {
-      $authtriples = wisski_vocab_ctrl_get_triples($auth_id, $indiv);
+      list($ok, $indiv, $authtriples) = wisski_vocab_ctrl_import($auth_id, $indiv);
+      if (!$ok) {
+        drupal_set_message($indiv, 'error');
+        $indiv = NULL;
+      }
     } else {
       $indiv = NULL;
     }
