@@ -2884,6 +2884,7 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
     
       drupal_add_js('misc/collapse.js');
       $wrapper .= '<fieldset class="collapsible wki-fieldset-view"><legend>' . $grouparr['name'] . '</legend>'; // <- Schwule schreibweise :P
+      $parent_array[] = (string)$grouparr['id'];
     } else { // edit, add, ...
     
       if($grouparr['fieldtype'] != "ontogroup") {
@@ -3364,41 +3365,37 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
           
           //drupal_set_message("I am here: " . serialize($fs));
             for($tmpi=0; $tmpi<$count; $tmpi++) {
-          
+                      
               $tmpVal[$arr['id'] . '_' . $tmpi] = _wisski_pathbuilder_get_field($arr);
               $tmpVal[$arr['id'] . '_auth_data_' . $tmpi] = _wisski_pathbuilder_get_autocomplete_data_field($arr);
               
+              // get current position
               $my_parent_array = $current_parent_array;
               $my_parent_array[] = (string)$arr['id'];
               $my_parent_array[] = (string)($arr['id'] . '_' . $tmpi);
               
+              // load the title
               $node = node_load(arg(1));
               $title = $node->title;
               
               global $base_url;
-                            
+              
+              // is the title correct?
               if(!strpos($base_url, $title))
                 $title = wisski_store_getObj()->wisski_ARCAdapter_delNamespace($title);
               
+              // get the weight of the field at the current position
               $weightresult = db_query("SELECT weight FROM {wisski_weight} WHERE title = '" . $title . "' AND field_id = '%s'", serialize($my_parent_array));
-//              drupal_set_message("I am looking for: " . serialize($my_parent_array));
               
-              
-              //drupal_set_message(serialize($form_state));
-              
-              //if($r = db_fetch_array($result)) {
-              
+              // is there a weight in the database? or is it in the forms? if not, assume one
               if($weightrow = db_fetch_array($weightresult)) {
                 $weight = $weightrow['weight'];
               } else if(!empty($fs[$arr['id']]["button"]['weight_' . $arr['id'] . '_' . $tmpi])) {
                 $weight = $fs[$arr['id']]["button"]['weight_' . $arr['id'] . '_' . $tmpi];
               } else 
                 $weight = $tmpi;
-              
-//              drupal_set_message("I found a weight of " . $weight);
-              
-              //drupal_set_message("fs: " . serialize($fs[$arr['id']]["button"]['weight_' . $arr['id'] . '_' . $tmpi]));
-              
+
+              // construct a weight-field              
               $tmpVal[$arr['id'] . '_' . $tmpi]['#weight'] = $weight;
               $tmpVal['weight_' . $arr['id'] . '_' . $tmpi ] = array(
                 '#type' => 'weight',
@@ -3409,8 +3406,6 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
                 '#delta' => 10,
 //                '#description' => t('Optional. In the menu, the heavier items will sink and the lighter items will be positioned nearer the top.')
               );
-              //}
-              
               
 
               if($tmpi > 0) {
@@ -3503,6 +3498,7 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
           
             $elementwrap .= '<div class="wki-data-item"><div class="wki-data-label">' . check_plain($arr['name']) . '</div>';
             $elements = "";
+            $order_by_weight = array();
 
             if(!empty($fs['wisskiValues'][$arr['id']])) {
               $count = count($fs['wisskiValues'][$arr['id']]);
@@ -3512,18 +3508,49 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
 
             for($tmpi=0; $tmpi<$count; $tmpi++) {
 
+              // get the current position
+              $my_parent_array = $current_parent_array;
+              $my_parent_array[] = (string)$arr['id'];
+              $my_parent_array[] = (string)($arr['id'] . '_' . $tmpi);
+              
+              // load the current node for the title
+              $node = node_load(arg(1));
+              $title = $node->title;
+              
+              global $base_url;
+                            
+              if(!strpos($base_url, $title))
+                $title = wisski_store_getObj()->wisski_ARCAdapter_delNamespace($title);
+              
+              // get the weight
+              $weightresult = db_query("SELECT weight FROM {wisski_weight} WHERE title = '" . $title . "' AND field_id = '%s'", serialize($my_parent_array));
+            
+              if($weightrow = db_fetch_array($weightresult)) {
+                $weight = $weightrow['weight'];
+              } else 
+                $weight = $tmpi;
+
+
               if($arr['disamb'] > 0) {
                 if($out['result']['rows'][$tmpi]['out']) {
                   $groupids = wisski_pathbuilder_getInternaGroupsForConcept($out['result']['rows'][$tmpi][('x' . ($arr['disamb']-1))]);
                   if($groupids && count($groupids) > 0)
-                    $elements .= '<div class="wki-data-value"><a href="' . $out['result']['rows'][$tmpi][('x' . ($arr['disamb']-1))] . '">' . check_plain($out['result']['rows'][$tmpi]['out']) . '</a></div>';
+                    $order_by_weight[$weight] .= '<div class="wki-data-value"><a href="' . $out['result']['rows'][$tmpi][('x' . ($arr['disamb']-1))] . '">' . check_plain($out['result']['rows'][$tmpi]['out']) . '</a></div>';
                   else
-                    $elements .= '<div class="wki-data-value">' . check_plain($out['result']['rows'][$tmpi]['out']) . '</div>';
+                    $order_by_weight[$weight] .= '<div class="wki-data-value">' . check_plain($out['result']['rows'][$tmpi]['out']) . '</div>';
                 }
               } else {
-                $elements .= '<div class="wki-data-value">' . check_plain($out['result']['rows'][$tmpi]['out']) . '</div>';
+                $order_by_weight[$weight] .= '<div class="wki-data-value">' . check_plain($out['result']['rows'][$tmpi]['out']) . '</div>';
               }
               $def[$arr['id'] . '_' . $tmpi] = $tmpVal[$arr['id'] . '_' . $tmpi]['#default_value']; 
+            }
+
+            // order by the weight            
+            ksort($order_by_weight);
+            
+            // go for it
+            foreach($order_by_weight as $value) {
+              $elements .= $value;
             }
 
 
