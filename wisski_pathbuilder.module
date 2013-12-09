@@ -503,7 +503,7 @@ function wisski_pathbuilder_form_individual_node_form_alter(&$form, &$form_state
   
   $oldform = $form;
   
-  $form = $newform + $oldform; 
+  $form = $newform + $oldform;
     
   return;
   
