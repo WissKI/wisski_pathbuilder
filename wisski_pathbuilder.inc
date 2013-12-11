@@ -346,7 +346,7 @@ function wisski_pathbuilder_getOptionArray($pathid, $arg2 = FALSE) {
   $data = wisski_pathbuilder_getPathData($pathid);
   $path_array = unserialize($data['path_array']);
   $pgroup_path = _wisski_pathbuilder_calculate_group_samepart($data['group_id']);
-  $min_x = (count($pgroup_path) + 1) / 2; // common path of containing group plus one concept
+  $min_x = (count($pgroup_path) - 1) / 2; // common path of containing group plus one concept
   $min_x = max($data['disamb'] - 1, $min_x);
 
   if (module_exists('wisski_vocab_ctrl')) {
@@ -391,13 +391,14 @@ function wisski_pathbuilder_getOptionArray($pathid, $arg2 = FALSE) {
   
   foreach ($sortauths as $k => $auths) {
 
-    foreach($auths as $auth) {
+      foreach($auths as $auth) {
         
         $local_limit = $limit - count($out);
         if ($h_term) {
           $uris = wisski_vocab_ctrl_lookup('labels', $auth, NULL, $h_term, $local_limit, $offset, 'exact', 'normal', TRUE);
         } else {
-          $uris = wisski_vocab_ctrl_lookup('labels', $auth, NULL, $arg2, $local_limit, $offset, 'starts', 'normal', TRUE);  // viel schneller!
+            // viel schneller
+            !$uris = wisski_vocab_ctrl_lookup('labels', $auth, NULL, $arg2, $local_limit, $offset, 'starts', 'normal', TRUE);
  //         $uris = wisski_vocab_ctrl_lookup('labels', $auth, NULL, $arg2, $local_limit, $offset, 'contains');
         }
 //return;        
@@ -406,6 +407,13 @@ function wisski_pathbuilder_getOptionArray($pathid, $arg2 = FALSE) {
         }
 
         foreach($uris as $individual => $labels) {
+          
+          // if the auth individual would be the main instance of the form (?x0)
+          // we have to make sure already imported indivs are not shown.
+          if ($k == 0 && wisski_vocab_ctrl_get_local_uri($individual)) {
+            continue;
+          } 
+
           $preflabel = NULL;
           $altlabel = NULL;
           if (isset($labels['label'])) {
@@ -1074,7 +1082,7 @@ function wisski_pathbuilder_template_edit_submit($form, &$form_state) {
 //  drupal_set_message("Juhu!");
 //  drupal_set_message(serialize($form_state));
   //unset($form_state['storage']);  
-  
+
   //  $form_state['storage']['old_values'] = wisski_pathbuilder_calc_old_values($form['form']);
 
   $node = node_load(arg(1));
@@ -1109,8 +1117,8 @@ function wisski_pathbuilder_template_edit_submit($form, &$form_state) {
 
 }
 
-function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, $paths, $condition, $ov_pointer, $main_subject = "", $parentpath = NULL, $parent_array = array()) {
-  //dpm(func_get_args());
+function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, $paths, $condition, $ov_pointer, $main_subject = "", $parentpath = NULL, $parent_array = array(), &$main_subj_out = '') {
+  
   //dpm($fs_pointer);
 
   $result = db_query("SELECT * FROM {wisski_template} WHERE id = $groupid");
@@ -1119,9 +1127,12 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
   
   $node = node_load(arg(1));
   
-  if(!empty($node) && !empty($node->nid) && empty($main_subject))
+  if(!empty($node) && !empty($node->nid) && empty($main_subject)) {
     $main_subject = wisski_store_getObj()->wisski_ARCAdapter_delNamespace($node->title);
-  
+  }
+  // by Martin: potential subject URI for auth handling when auth term at x0
+  $pot_main_subject = NULL;
+  if (!$main_subject) $pot_main_subject = wisski_store_getObj()->wisski_ARCAdapter_delNamespace(wisski_store_getObj()->wisski_Store_getNewUniqueID());
   
   $got_triples = array();
   
@@ -1295,7 +1306,7 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
               $auth_key = str_replace('_', '_auth_data_', $key);
             else
               $auth_key = 'auth_data_' . $key; 
-          
+
             // d.h. die Gruppe gabs schon
             if(!empty($paths[$v]['path'])) {
 //              drupal_set_message("There is a path");
@@ -1304,11 +1315,12 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
               $sp = _wisski_pathbuilder_calculate_group_samepart($groupid);
    //           drupal_set_message(serialize($sp));
 
-              list($indiv, $auth_triples, $x) = wisski_pathbuilder_check_auth_triples($auth_key, $value, $authinfo);
+              list($indiv, $auth_triples, $x) = wisski_pathbuilder_check_auth_triples($auth_key, $value, $authinfo, $main_subject);
               if (empty($indiv)) {
                 $triples = _wisski_pathbuilder_generate_triples_of_path($form, $value, $row['id'], $data["x" . floor(count($sp)/2)], $data);
               } else {
                 $triples = _wisski_pathbuilder_generate_triples_of_path($form, $value, $row['id'], $data["x" . floor(count($sp)/2)], $data, $indiv, $x);
+                if (empty($main_subject)) $main_subject = $indiv;
                 $triples = array_merge($triples, $auth_triples);
               }
               
@@ -1327,7 +1339,7 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
                   
 //                  drupal_set_message("data is: " . serialize($data));
                   
-                  list($indiv, $auth_triples, $x) = wisski_pathbuilder_check_auth_triples($auth_key, $value, $authinfo);
+                  list($indiv, $auth_triples, $x) = wisski_pathbuilder_check_auth_triples($auth_key, $value, $authinfo, $main_subject);
                   if (empty($indiv)) {
                     $triples = _wisski_pathbuilder_generate_triples_of_path($form, $value, $row['id'], $data["x" . floor(count($data)/2)], $data);
                   } else {
@@ -1338,15 +1350,16 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
                 } else {
 //                  drupal_set_message("There is no MS!");
 
-                  list($indiv, $auth_triples, $x) = wisski_pathbuilder_check_auth_triples($auth_key, $value, $authinfo);
+                  list($indiv, $auth_triples, $x) = wisski_pathbuilder_check_auth_triples($auth_key, $value, $authinfo, $pot_main_subject);
                   if (empty($indiv)) {
                     $triples = _wisski_pathbuilder_generate_triples_of_path($form, $value, $row['id']);
                   } else {
                     $triples = _wisski_pathbuilder_generate_triples_of_path($form, $value, $row['id'], '', array(), $indiv, $x);
                     $triples = array_merge($triples, $auth_triples);
+                    if ($x == 0) $main_subject = $indiv;
                   }
 //                  $triples = _wisski_pathbuilder_generate_triples_of_path($form, $value, $row['id']);
-                  $main_subject = $triples[0]['s'];
+                  if (empty($main_subject)) $main_subject = $triples[0]['s'];
                   $condition = "FILTER ( ?x0 = <" . $main_subject . ">) ";
                 }
               } else { // Keine Hauptgruppe?
@@ -1367,7 +1380,7 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
 //                  drupal_set_message("my data is: " . serialize($data));
 //                  drupal_set_message("I am generating triples for " . $row['id']);
                   //}
-                  list($indiv, $auth_triples, $x) = wisski_pathbuilder_check_auth_triples($auth_key, $value, $authinfo);
+                  list($indiv, $auth_triples, $x) = wisski_pathbuilder_check_auth_triples($auth_key, $value, $authinfo, $main_subject);
 
 //                  drupal_set_message("indiv: " . $indiv);
 //                  drupal_set_message(" triples: " . serialize($auth_triples));
@@ -1432,12 +1445,13 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
                 } else { // Gruppe beginnt direkt mit einer Sub-Gruppe... ggf. weil die felder weiter unten stehen.
                   //$data = wisski_pathbuilder_get_group_samepart_data($my_group['group_id']);
 
-                  list($indiv, $auth_triples, $x) = wisski_pathbuilder_check_auth_triples($auth_key, $value, $authinfo);
+                  list($indiv, $auth_triples, $x) = wisski_pathbuilder_check_auth_triples($auth_key, $value, $authinfo, $pot_main_subject);
                   if (empty($indiv)) {
                     $triples = _wisski_pathbuilder_generate_triples_of_path($form, $value, $row['id']);
                   } else {
                     $triples = _wisski_pathbuilder_generate_triples_of_path($form, $value, $row['id'], '', array(), $indiv, $x);
                     $triples = array_merge($triples, $auth_triples);
+                    if ($x == 0) $main_subject = $indiv;
                   }
                   
                   $path = array();
@@ -1463,7 +1477,7 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
                   
 //                  drupal_set_message(serialize($paths));
 //                  $triples = _wisski_pathbuilder_generate_triples_of_path($form, $value, $row['id']);
-                  $main_subject = $triples[0]['s'];
+                  if (empty($main_subject)) $main_subject = $triples[0]['s'];
                   $condition = "FILTER ( ?x0 = <" . $main_subject . ">) ";
                 }
               }
@@ -1555,6 +1569,9 @@ function _wisski_pathbuilder_generate_triples_of_path($form, $valuestr, $id, $su
   if(empty($valuestr))
     return array();
   $result = db_query("SELECT * FROM {wisski_template} WHERE id = $id ");
+  
+  // if the last part of the part is at x0 we don't need to create any triples
+  if ($obj_x == 0 && !empty($objIn)) return array();
 
   $sameMax = floor(count($samepart)/2);
   $outTriples = array();  
@@ -2536,14 +2553,20 @@ function wisski_pathbuilder_build_group_submit($form, &$form_state) {
 
   $paths = array();
 
-
-  $triples = wisski_pathbuilder_recursive_edit_submit($form, $form_state['values'], $groupid, $paths, array(), array());
-
-  $triple = $triples[0];
-  $mainsubject = $triple['s'];
+  $main_subj_out = FALSE;
+  $triples = wisski_pathbuilder_recursive_edit_submit($form, $form_state['values'], $groupid, $paths, array(), array(), array(), array(), array(), $main_subj_out);
+  
+  
+//  $triple = $triples[0];
+//  $mainsubject = $triple['s'];
       
   $form_state['triples'] = $triples;
-  $form_state['values']['title'] = wisski_store_getObj()->wisski_ARCAdapter_addNamespace($mainsubject);
+  if ($main_subj_out === FALSE) {
+    $mainsubject = $triples[0]['s'];
+    $form_state['values']['title'] = wisski_store_getObj()->wisski_ARCAdapter_addNamespace($mainsubject);
+  } else {
+    $form_state['values']['title'] = wisski_store_getObj()->wisski_ARCAdapter_addNamespace($main_subj_out);
+  }
   $form_state['values']['type'] = "individual";
 }
 
@@ -2627,10 +2650,9 @@ function wisski_pathbuilder_calculate_group_samepart($groupid) {
 
 
 
-function wisski_pathbuilder_check_auth_triples($key, $value, $form_state) {
+function wisski_pathbuilder_check_auth_triples($key, $value, $form_state, $main_subject = NULL) {
   $authtriples = array();
   $indiv = NULL;
-  drupal_load('module', 'wisski_vocab_ctrl');
 
 /* I know where they are... so I don't have to search for them :D  
   # dull search for the auth data field; should be done better
@@ -2674,11 +2696,19 @@ function wisski_pathbuilder_check_auth_triples($key, $value, $form_state) {
     $auth_id = substr($parts[0], 5, -1);
     $indiv = substr($parts[1], 5, -1);
     $x = substr($parts[2], 3, -1);
+
+    if ($x == 0 && $main_subject) {
+      $local_uri = $main_subject;
+    } else {
+      $local_uri = NULL;
+    }
     
     $input = $parts[3];
     if($input == $value ) {
+      drupal_load('module', 'wisski_vocab_ctrl');
+      module_load_include('inc', 'wisski_vocab_ctrl');
       if (function_exists('wisski_vocab_ctrl_import')) {
-        list($ok, $indiv, $authtriples) = wisski_vocab_ctrl_import($auth_id, $indiv);
+        list($ok, $indiv, $authtriples) = wisski_vocab_ctrl_import($auth_id, $indiv, NULL, $local_uri);
         if (!$ok) {
           drupal_set_message($indiv, 'error');
           $indiv = NULL;

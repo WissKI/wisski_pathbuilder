@@ -203,7 +203,9 @@ function wisski_form_forward($node) {
     $node->name = $user->name;
   }
 
-  return drupal_get_form('individual_node_form', $node);
+  $return = drupal_get_form('individual_node_form', $node);
+  return $return;
+
 }
 
 /**
@@ -357,9 +359,7 @@ function wisski_pathbuilder_block($op = 'list', $delta = 0, $edit = array()) {
       return $block;          
     } else if ($delta == 1) {
       $block['subject'] = t('Blocked Text');
-      dpm("hier");
       $block['content'] = wisski_pathbuilder_getText($node);
-      dpm($block, "dort");
       return $block;
     }
   }
@@ -465,7 +465,6 @@ function wisski_pathbuilder_menu_alter(&$items) {
 
 
 function wisski_pathbuilder_form_individual_node_form_alter(&$form, &$form_state) {
-
   module_load_include('inc', 'wisski_pathbuilder', 'wisski_pathbuilder');
   module_load_include('inc', 'node', 'node.pages');
   
