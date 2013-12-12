@@ -212,7 +212,6 @@ function wisski_form_forward($node) {
  * Implemenation of hook_theme().
  */
 function wisski_pathbuilder_theme() {
-  drupal_set_message("reloaded theme!");
   return array(
     'wisski_pathbuilder_overview_form' => array(
       'file' => 'wisski_pathbuilder.inc',

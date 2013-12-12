@@ -972,7 +972,7 @@ function wisski_pathbuilder_template_edit($form_state, $node) {
  * @author Mark Fichtner
  */
 function wisski_pathbuilder_get_group_samepart_data($groupid, $subjIn = NULL) {
-
+  
   if($groupid == 0) {
     drupal_set_message(t("No Data found, error."),'error');
     return;
