@@ -1175,6 +1175,11 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
     while($row = db_fetch_array($result)) {
       $fs = $storefs;
       $authinfo = array();
+      
+      // this is necessary for compatibility with text module
+      if ($row['fieldtype'] == 'description' && module_exists('wisski_textmod')) {
+        continue;
+      }
 
       if($row['is_group'] == 1) {
 //        drupal_set_message("delegate with condition: " . $condition);
