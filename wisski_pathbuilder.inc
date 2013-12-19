@@ -3654,6 +3654,9 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
        
           $elements = "";
           $result = check_plain($result);
+          $result = check_markup($result, 1);
+          $result = preg_replace('/\<p\>(.*)\<\/p\>/s', '$1', $result);
+          
           if($arr['disamb'] > 0) {
             if($resultarr[('x' . ($arr['disamb']-1))]) {
        
