@@ -3370,11 +3370,12 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
             $tmpbase['auth_data_' . $arr['id']] = _wisski_pathbuilder_get_autocomplete_data_field($arr);
             $def = array();
 
-          
-            foreach($out['result']['rows'] as $result1) {
-              $def[$result1['out']] = $result1['out'];
+            if(isset($out['result']) && isset($out['result']['rows'])) {          
+              foreach($out['result']['rows'] as $result1) {
+                $def[$result1['out']] = $result1['out'];
+              }
             }
-
+            
             if(!empty($fs[$arr['id']])) {
               $tmpbase[$arr['id']]['#default_value'] = $fs[$arr['id']];
               $tmpbase['auth_data_' . $arr['id']]['#default_value'] = $fs['auth_data_' . $arr['id']];
