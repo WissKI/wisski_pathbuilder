@@ -268,7 +268,6 @@ function theme_wisski_pathbuilder_dragtable($element) {
   }
   */
 
-  //drupal_set_message(htmlentities($element['#children']));
   preg_match_all('/<div class=\"form-item\".*?id="(.*?)".*?>([^`]*?)<\/div>/', $element['#children'], $matches);
   $remaining = preg_replace('/<div class=\"form-item\".*?id="(.*?)".*?>([^`]*?)<\/div>/', '', $element['#children']);  
 //  drupal_set_message("matches: " . serialize($matches));

@@ -591,10 +591,10 @@ function wisski_pathbuilder_duplicate($pathid = 1) {
 //  drupal_set_message(serialize($form_state));
 
 //  $offset = wisski_pathbuilder_getFormOffset($pathid);
-    $offset = $form_state['clicked_button']['#parents'];
+  $offset = $form_state['clicked_button']['#parents'];
 //  drupal_set_message("looking for offset: " . serialize($form));
 
-//  drupal_set_message("clicked button is: " . serialize($form_state['clicked_button']));
+  //drupal_set_message("clicked button is: " . serialize($form_state['clicked_button']['#parents']));
 
   $out = $form; //form_get_cache($form_build_id, $form_state);
 //  drupal_set_message("out: " . serialize($out));
@@ -622,9 +622,9 @@ function wisski_pathbuilder_duplicate($pathid = 1) {
 
   unset($out['#prefix'], $out['#suffix']);
   
-//  drupal_set_message(serialize($out));
+  //drupal_set_message(serialize($out));
   
-//  drupal_set_message(drupal_render($out));
+  //drupal_set_message(drupal_render($out));
 
   drupal_set_header('Content-Type: text/html; charset=utf-8');
 //  drupal_add_js('wisski_pathbuilder.js', 'module');
@@ -651,6 +651,16 @@ function wisski_pathbuilder_filter_weight_data($array) {
   $newarray = array();
   foreach($array as $key => $value) {
     if(strpos($key, 'weight_') === FALSE)
+      $newarray[$key] = $value;
+  }
+  
+  return $newarray;
+}
+
+function wisski_pathbuilder_filter_undupl_button_data($array) {
+  $newarray = array();
+  foreach($array as $key => $value) {
+    if(strpos($key, 'wisski_pathbuilder_undupl_button_') === FALSE)
       $newarray[$key] = $value;
   }
   
@@ -709,6 +719,160 @@ function wisski_pathbuilder_down_submit($form, &$form_state) {
   wisski_pathbuilder_rescue_values($form, $form_state);
 }
 
+function wisski_pathbuilder_undupl_submit($form, &$form_state) {
+  $form_state['rebuild'] = TRUE;
+  
+//  $arr = explode('/', $form_state['clicked_button']['#ahah']['path']);
+  
+  $offset = $form_state['clicked_button']['#parents'];
+  
+  $button_name = $offset[count($offset)-1];
+  
+  //drupal_set_message(serialize($offset));
+  
+  $my_key = $offset[count($offset)-1];
+  
+  //unset($offset[count($offset)-1]);
+  unset($offset[count($offset)-1]);
+
+  //$offset[] = 'button';
+  $offset = array_values($offset);
+  $tmpval = &$form_state['values'];
+  
+  foreach($offset as $off) {
+    $tmpval = &$tmpval[$off];
+  }
+  
+  //drupal_set_message(serialize($tmpval));
+  
+  //$my_key = "";
+  
+  //foreach($tmpval['button'] as $key => $value) {
+  //  if(!is_null($value)) {
+  //    $my_key = $key;
+  //  }
+  //}
+  
+  //$arr = explode('_', $key);
+  
+  //$to_go = str_replace('wisski_pathbuilder_down_button_', '', $button_name);
+  //$tmpval['weight_' . $to_go] = $tmpval['weight_' . $to_go] + 1;
+  
+  $my_key = str_replace('wisski_pathbuilder_undupl_button_', '', $my_key);
+  
+  $arr = explode('_', $my_key);
+  
+  //drupal_set_message(serialize($my_key));
+  //unset($tmpval[$arr[0]][$arr[0] . '_' . $arr[1]]);
+  //unset($tmpval[$arr[0]]['weight_' . $arr[0] . '_' . $arr[1]]);
+  //unset($tmpval[$arr[0]][$arr[0] . '_auth_data_' . $arr[1]]);
+  
+  $newarr = array();
+  
+  $counter = 0;
+  foreach($tmpval as $key => $value) {
+//    drupal_set_message("key is: " . serialize($key));
+
+    if(is_null(preg_match("|(\d+)_|",$key, $matches))) 
+      continue;
+    
+    $groupid = $matches[1];  
+    
+    if(is_null(preg_match("|_(\d+)$|",$key, $matches))) 
+      continue;
+      
+    $curid = $matches[1];
+    
+  //  drupal_set_message("gr " . $groupid . " cur " . $curid);
+  //  drupal_set_message("arr " . serialize($arr));
+    // wenn die gruppe übereinstimmt, dann müssen wir was machen, sonst bleibts wies ist!
+    if($arr[0] == $groupid) {
+        
+      // wenns vorher steht, rüberkopieren
+      if($arr[1] > $curid) {
+    //    drupal_set_message("smaller!");
+        $newarr[$key] = $value;
+      } // wenns gleich ist, dann lassen wirs weg. 
+      else if($arr[1] == $curid) {
+   //     drupal_set_message("same!");
+        continue;
+      } // wenns größer ist müssen wir um eins dekrementieren! 
+      else if($arr[1] < $curid) {
+   //     drupal_set_message("old key: " . $key);
+        $newkey = preg_replace('|_' . $curid . '$|', '_'. ($curid-1) . '', $key);
+   //     drupal_set_message("new key: $newkey");
+        $newarr[$newkey] = $value;
+      }
+    
+    
+    } else {
+      $newarr[$key] = $value;
+    }
+  
+/*
+  foreach($tmpval[$arr[0]] as $key => $value) {
+    drupal_set_message("key is: " . serialize($key));
+
+    if(is_null(preg_match("|(\d+)_|",$key, $matches))) 
+      continue;
+    
+    $groupid = $matches[1];  
+    
+    if(is_null(preg_match("|_(\d+)$|",$key, $matches))) 
+      continue;
+      
+    $curid = $matches[1];
+    
+    drupal_set_message("gr " . $groupid . " cur " . $curid);
+    drupal_set_message("arr " . serialize($arr));
+    // wenn die gruppe übereinstimmt, dann müssen wir was machen, sonst bleibts wies ist!
+    if($arr[0] == $groupid) {
+        
+      // wenns vorher steht, rüberkopieren
+      if($arr[1] > $curid) {
+        drupal_set_message("smaller!");
+        $newarr[$key] = $value;
+      } // wenns gleich ist, dann lassen wirs weg. 
+      else if($arr[1] == $curid) {
+        drupal_set_message("same!");
+        continue;
+      } // wenns größer ist müssen wir um eins dekrementieren! 
+      else if($arr[1] < $curid) {
+        drupal_set_message("old key: " . $key);
+        $newkey = preg_replace('|_' . $curid . '$|', '_'. ($curid-1) . '', $key);
+        drupal_set_message("new key: $newkey");
+        $newarr[$newkey] = $value;
+      }
+    
+    
+    } else {
+      $newarr[$key] = $value;
+    }
+*/
+      
+      
+/*
+    if($key == $arr[0]) {
+      unset($tmpval[$arr[0]][$arr[0] . '_' . $arr[1]]);
+      unset($tmpval[$arr[0]]['weight_' . $arr[0] . '_' . $arr[1]]);
+      unset($tmpval[$arr[0]][$arr[0] . '_auth_data_' . $arr[1]]);
+    } else {
+      $newarr[$arr[0]][$arr[0] . '_' . $counter] = $tmpval[$arr[0]][$arr[0] . '_' . $arr[1]];
+    }
+  */  
+    
+  }
+  
+  //drupal_set_message(serialize($newarr));
+  
+  $tmpval = $newarr;
+  
+  //drupal_set_message(serialize($tmpval));
+  
+  
+  wisski_pathbuilder_rescue_values($form, $form_state);
+}
+
 function wisski_pathbuilder_dupl_submit($form, &$form_state) {
 //  drupal_set_message("I'm first!","error");
 //  wisski_pathbuilder_rescue_values($form, $form_state);
@@ -748,6 +912,7 @@ function wisski_pathbuilder_dupl_submit($form, &$form_state) {
 
   $myval = wisski_pathbuilder_filter_auth_data($tmpval);
   $myval = wisski_pathbuilder_filter_weight_data($myval);
+  $myval = wisski_pathbuilder_filter_undupl_button_data($myval);
   
 //  drupal_set_message(serialize($tmpval));  
   
@@ -1216,6 +1381,7 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
         
         $values = wisski_pathbuilder_filter_auth_data($values);
         $values = wisski_pathbuilder_filter_weight_data($values);
+        $values = wisski_pathbuilder_filter_undupl_button_data($values);
 
         if(is_array($ov[$row['id']]))
           $old_values = $ov[$row['id']];
@@ -3194,7 +3360,13 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
 
             if(!empty($fs[$arr['id']]["button"])) {
               $keys = array_keys($fs[$arr['id']]["button"]);
-              $uuid = str_replace("wisski_pathbuilder_dupl_button_", "", $keys[0]); 
+              
+              foreach($keys as $key) {
+                if(strpos($key, "wisski_pathbuilder_dupl_button_") !== FALSE) {
+                  $uuid = str_replace("wisski_pathbuilder_dupl_button_", "", $key);
+                  break;
+                }              
+              }
             } else {
               $uuid = wisski_get_uid();
             }
@@ -3226,6 +3398,7 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
             if(!empty($fs[$arr['id']][$arr['id']])) {
               $cnt = wisski_pathbuilder_filter_auth_data($fs[$arr['id']][$arr['id']]);
               $cnt = wisski_pathbuilder_filter_weight_data($cnt);
+              $cnt = wisski_pathbuilder_filter_undupl_button_data($cnt);
               $count = count($cnt);
             } else {
               $count = 1;
@@ -3410,7 +3583,12 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
 
             if(!empty($fs[$arr['id']]["button"])) {
               $keys = array_keys($fs[$arr['id']]["button"]);
-              $uuid = str_replace("wisski_pathbuilder_dupl_button_", "", $keys[0]); 
+              foreach($keys as $key) {
+                if(strpos($key, "wisski_pathbuilder_dupl_button_") !== FALSE) {
+                  $uuid = str_replace("wisski_pathbuilder_dupl_button_", "", $key);
+                  break;
+                }              
+              }
             } else {
               $uuid = wisski_get_uid();
             }	
@@ -3427,7 +3605,7 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
            
                             
 
-            $tmp['wisski_pathbuilder_dupl_button_' . $uuid] = array(
+            $duplbutton = array(
               '#type' => 'image_button',
               '#src' => 'sites/all/themes/blendedmalts/pics/ico_add.png',
               '#attributes' => array('class' => 'wki-button-dupl wisski_dupl_single', 
@@ -3445,6 +3623,7 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
             if(!empty($fs[$arr['id']][$arr['id']]) > 0) {
               $cnt = wisski_pathbuilder_filter_auth_data($fs[$arr['id']][$arr['id']]);
               $cnt = wisski_pathbuilder_filter_weight_data($cnt);
+              $cnt = wisski_pathbuilder_filter_undupl_button_data($cnt);
               $count = count($cnt);
 //            $count = count($fs[$arr['id']][$arr['id']]);
             } else {
@@ -3498,6 +3677,20 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
                 '#delta' => 10,
 //                '#description' => t('Optional. In the menu, the heavier items will sink and the lighter items will be positioned nearer the top.')
               );
+
+              $tmpVal['wisski_pathbuilder_undupl_button_' . $arr['id'] . '_' . $tmpi] = array(
+                '#type' => 'image_button',
+                '#src' => 'sites/all/themes/blendedmalts/pics/ico_del.png',
+                '#attributes' => array('class' => 'wki-button-undupl wisski_undupl_single', 
+                'alt' => t('unduplicate path with id ' . $arr['id'])),
+             //   '#parents' => $myparents,
+                '#submit' => array('wisski_pathbuilder_undupl_submit'),
+                '#ahah' => array(
+                  'event' => 'click',
+                  'path' => 'wisski_pathbuilder/duplicate/' . $arr['id'], //ahah_helper_path($path_structure),
+                  'wrapper' => 'wisski_pathbuilder_ontotext_wrapper_' . $uuid,
+                ),
+              );
               
 
               if($tmpi > 0) {
@@ -3516,6 +3709,8 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
               
               $def[$arr['id'] . '_' . $tmpi] = $tmpVal[$arr['id'] . '_' . $tmpi]['#default_value']; 
             }
+            
+            $tmp['wisski_pathbuilder_dupl_button_' . $uuid] = $duplbutton;
       
             $valArr['#default_value'] = $def;
 
