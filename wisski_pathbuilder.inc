@@ -719,6 +719,51 @@ function wisski_pathbuilder_down_submit($form, &$form_state) {
   wisski_pathbuilder_rescue_values($form, $form_state);
 }
 
+function wisski_pathbuilder_cls_submit($form, &$form_state) {
+  //  drupal_set_message("I'm first!","error");
+//  wisski_pathbuilder_rescue_values($form, $form_state);
+//  $arr = explode('/', $form_state['clicked_button']['#ahah']['path']);
+  //$pathid = $arr[count($arr)-1];
+
+  //drupal_set_message(serialize(count($form_state['values'][1][1][6][6])));
+
+//  drupal_set_message("fs is: " . serialize($form_state));
+
+  //$offset = wisski_pathbuilder_getFormOffset($pathid);
+  //$form_state['wisskiValues'] = $form_state['values'];
+  $offset = $form_state['clicked_button']['#parents'];
+  //drupal_set_message("klicked button is: " . serialize($form_state['clicked_button']));
+  $form_state['rebuild'] = TRUE;
+
+  unset($offset[count($offset)-1]);
+  unset($offset[count($offset)-1]);
+
+  $pathid = $offset[count($offset)-1];
+
+  $offset = array_values($offset);
+//  $offset[] = $offset[count($offset)-1] . '_' . 
+//  $offset[] = $pathid;
+
+  
+  $tmpval = &$form_state['values'];
+  
+//  drupal_set_message(serialize($offset));
+  
+  foreach($offset as $off) {
+//    drupal_set_message("I'm currently here: " . serialize($tmpval), 'error');
+//    drupal_set_message("I'm trying it with " . $off, 'error');
+    $tmpval = &$tmpval[$off];
+  }
+
+//  drupal_set_message(serialize($tmpval));
+
+//  unset($tmpval[$pathid]);
+  $tmpval[$pathid] = "";
+
+  wisski_pathbuilder_rescue_values($form, $form_state);
+
+}
+
 function wisski_pathbuilder_undupl_submit($form, &$form_state) {
   $form_state['rebuild'] = TRUE;
   
@@ -865,9 +910,14 @@ function wisski_pathbuilder_undupl_submit($form, &$form_state) {
   
   //drupal_set_message(serialize($newarr));
   
+  if(empty($newarr))
+    $newarr[$arr[0] . '_' . $arr[1]] = ""; 
+  
   $tmpval = $newarr;
   
-  //drupal_set_message(serialize($tmpval));
+//  if(empty($newarr))
+      
+//  drupal_set_message(serialize($newarr));
   
   
   wisski_pathbuilder_rescue_values($form, $form_state);
@@ -3539,8 +3589,8 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
           if($row_information['delete_empty'] && !$row_information['add_button']) {
         //if($arr['fieldtype'] == 'checkboxes' || $arr['fieldtype'] == 'select' ) {
 
-            $tmpbase[$arr['id']] = _wisski_pathbuilder_get_field($arr);
-            $tmpbase['auth_data_' . $arr['id']] = _wisski_pathbuilder_get_autocomplete_data_field($arr);
+            $tmpbase[$arr['id']][$arr['id']] = _wisski_pathbuilder_get_field($arr);
+            $tmpbase[$arr['id']]['auth_data_' . $arr['id']] = _wisski_pathbuilder_get_autocomplete_data_field($arr);
             $def = array();
 
             if(isset($out['result']) && isset($out['result']['rows'])) {          
@@ -3549,27 +3599,58 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
               }
             }
             
-            if(!empty($fs[$arr['id']])) {
-              $tmpbase[$arr['id']]['#default_value'] = $fs[$arr['id']];
-              $tmpbase['auth_data_' . $arr['id']]['#default_value'] = $fs['auth_data_' . $arr['id']];
+            if(!empty($fs[$arr['id']][$arr['id']])) {
+              $tmpbase[$arr['id']][$arr['id']]['#default_value'] = $fs[$arr['id']][$arr['id']];
+              $tmpbase[$arr['id']]['auth_data_' . $arr['id']]['#default_value'] = $fs[$arr['id']]['auth_data_' . $arr['id']];
             } else {
-              $tmpbase[$arr['id']]['#default_value'] = $def;
+              $tmpbase[$arr['id']][$arr['id']]['#default_value'] = $def;
 //            drupal_set_message(serialize($out));
               $paths[$arr['id']]['path'] = $out['result']['rows'];
             }
           } else if(!$row_information['delete_empty'] && !$row_information['add_button']) {
             
-            $tmpbase[$arr['id']] = _wisski_pathbuilder_get_field($arr);
-            $tmpbase['auth_data_' . $arr['id']] = _wisski_pathbuilder_get_autocomplete_data_field($arr);
+            $tmpbase[$arr['id']][$arr['id']] = _wisski_pathbuilder_get_field($arr);
+            $tmpbase[$arr['id']]['auth_data_' . $arr['id']] = _wisski_pathbuilder_get_autocomplete_data_field($arr);
  
             if(empty($fs[$arr['id']])) {
-              $tmpbase[$arr['id']]['#default_value'] = $result;
+              $tmpbase[$arr['id']][$arr['id']]['#default_value'] = $result;
 //   	         drupal_set_message(serialize($resultarr));
-              $paths[$arr['id']]['path'] = $resultarr;
+              $paths[$arr['id']][$arr['id']]['path'] = $resultarr;
+            } else if(!empty($fs[$arr['id']][$arr['id']])) {
+              $tmpbase[$arr['id']][$arr['id']]['#default_value'] = $fs[$arr['id']][$arr['id']];
+              $tmpbase[$arr['id']]['auth_data_' . $arr['id']]['#default_value'] = $fs[$arr['id']]['auth_data_' . $arr['id']];
             } else {
-              $tmpbase[$arr['id']]['#default_value'] = $fs[$arr['id']];
-              $tmpbase['auth_data_' . $arr['id']]['#default_value'] = $fs['auth_data_' . $arr['id']];
+              
             }
+            
+            if(!empty($fs[$arr['id']]["button"])) {
+              $keys = array_keys($fs[$arr['id']]["button"]);
+              foreach($keys as $key) {
+                if(strpos($key, "wisski_pathbuilder_cls_button_") !== FALSE) {
+                  $uuid = str_replace("wisski_pathbuilder_cls_button_", "", $key);
+                  break;
+                }              
+              }
+            } else {
+              $uuid = wisski_get_uid();
+            }
+                        
+            $tmpbase[$arr['id']][$arr['id']]['#prefix'] = "<div id=\"wisski_pathbuilder_field_wrapper_" . $uuid . "\">";
+            $tmpbase[$arr['id']][$arr['id']]['#suffix'] = "</div>";
+
+            $tmpbase[$arr['id']]['button']['wisski_pathbuilder_cls_button_' . $uuid] = array(
+              '#type' => 'image_button',
+              '#src' => 'sites/all/themes/blendedmalts/pics/ico_cls.png',
+              '#attributes' => array('class' => 'wki-button-undupl wisski_undupl_single', 
+              'alt' => t('Clear path with id ' . $arr['id'])),
+           //   '#parents' => $myparents,
+              '#submit' => array('wisski_pathbuilder_cls_submit'),
+              '#ahah' => array(
+                'event' => 'click',
+                'path' => 'wisski_pathbuilder/duplicate/' . $arr['id'], //ahah_helper_path($path_structure),
+                'wrapper' => 'wisski_pathbuilder_field_wrapper_' . $uuid,
+              ),
+            );
 
           } else if($row_information['add_button']) {
 
@@ -3691,7 +3772,21 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
                   'wrapper' => 'wisski_pathbuilder_ontotext_wrapper_' . $uuid,
                 ),
               );
-              
+/*
+              $tmpVal['wisski_pathbuilder_cls_button_' . $arr['id'] . '_' . $tmpi] = array(
+                '#type' => 'image_button',
+                '#src' => 'sites/all/themes/blendedmalts/pics/ico_cls.png',
+                '#attributes' => array('class' => 'wki-button-undupl wisski_undupl_single', 
+                'alt' => t('Clear path with id ' . $arr['id'])),
+             //   '#parents' => $myparents,
+                '#submit' => array('wisski_pathbuilder_cls_submit'),
+                '#ahah' => array(
+                  'event' => 'click',
+                  'path' => 'wisski_pathbuilder/duplicate/' . $arr['id'], //ahah_helper_path($path_structure),
+                  'wrapper' => 'wisski_pathbuilder_ontotext_wrapper_' . $uuid,
+                ),
+              );
+*/             
 
               if($tmpi > 0) {
                 $tmpVal[$arr['id'] . '_' . $tmpi]['#prefix'] = '<div class="wki-no-label">'; 
@@ -3711,7 +3806,7 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
             }
             
             $tmp['wisski_pathbuilder_dupl_button_' . $uuid] = $duplbutton;
-      
+
             $valArr['#default_value'] = $def;
 
 //          $valArr['button'] = $tmp;

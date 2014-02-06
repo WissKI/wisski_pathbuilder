@@ -268,9 +268,13 @@ function theme_wisski_pathbuilder_dragtable($element) {
   }
   */
 
-  preg_match_all('/<div class=\"form-item\".*?id="(.*?)".*?>([^`]*?)<\/div>/', $element['#children'], $matches);
-  $remaining = preg_replace('/<div class=\"form-item\".*?id="(.*?)".*?>([^`]*?)<\/div>/', '', $element['#children']);  
-//  drupal_set_message("matches: " . serialize($matches));
+  preg_match_all('/<div class=\"form-item\".*?id=\"(.*?)\".*?>([^`]*?)<\/div>/', $element['#children'], $matches);
+  $remaining = preg_replace('/<div class=\"form-item\".*?id=\"(.*?)\".*?>([^`]*?)<\/div>/', '', $element['#children']);
+  
+  preg_match_all('/<input type=\"image\".*?id=\"(.*?)\".*?>/', $remaining, $buttons);
+  $remaining = preg_replace('/<input type=\"image\".*?id=\"(.*?)\".*?>/', '', $remaining);
+    
+  //drupal_set_message("matches: " . serialize($remaining));
   
   $data = array();
   $weightkey = array();
@@ -283,17 +287,28 @@ function theme_wisski_pathbuilder_dragtable($element) {
     }
   }
   
+  foreach($buttons[1] as $key => $value) {
+    $buttondata[$value] = $buttons[0][$key];
+  }
+  
   //drupal_set_message("data: " . serialize($data));
   //drupal_set_message(serialize($weightkey));
   
   foreach($weightkey as $key) {
     $table_row = array();
     $datakey = str_replace("-weight-", "-", $key);
+    
+    $unduplkey = str_replace("-weight-", "-wisski-pathbuilder-undupl-button-", $key);
+    $unduplkey = str_replace("-wrapper", "", $unduplkey);
+    
+    //drupal_set_message(serialize($unduplkey));
+    
     $table_row[] = $data[$datakey];
     $table_row[] = $data[$key];
+    $table_row[] = $buttondata[$unduplkey];
     $table_rows[] = array('data' => $table_row, 'class' => 'draggable');
   }
-  
+    
   /*
   if(is_array($element)) {
     $table_rows[] = array('data' => $element['#children'], 'class' => 'draggable');
@@ -302,7 +317,7 @@ function theme_wisski_pathbuilder_dragtable($element) {
   
   //drupal_set_message(serialize($table_rows));
   
-  $header = array('Field', 'Weight');
+  $header = array('Field', 'Weight', 'Unduplicate');
   $id = $element['#attributes']['id'];
   
   $form = array('#value' => theme('table', $header, $table_rows, array('id' => $id)));
