@@ -768,10 +768,25 @@ function wisski_pathbuilder_cls_submit($form, &$form_state) {
     $tmpval = &$tmpval[$off];
   }
 
+  //$pathdata = wisski_pathbuilder_getPathData($pathid);
+  //$fieldtype = $pathdata['fieldtype'];
+  
+//  drupal_set_message(serialize($pathdata));
+
 //  drupal_set_message(serialize($tmpval));
 //  drupal_set_message(serialize($pathid));
 //  unset($tmpval[$pathid]);
-  $tmpval[$pathid] = "";
+  //$setting = wisski_pathbuilder_pb_fieldinformation($fieldtype);
+  //if($setting['delete_empty'] != FALSE) {
+  if(is_array($tmpval[$pathid])) {
+    foreach($tmpval[$pathid] as $key => $value) {
+      if(!empty($value)) {
+        $tmpval[$pathid][$key] = NULL;
+      }
+    }
+  } else {
+    $tmpval[$pathid] = "";
+  }
 
   wisski_pathbuilder_rescue_values($form, $form_state);
 
@@ -931,6 +946,38 @@ function wisski_pathbuilder_undupl_submit($form, &$form_state) {
 //  if(empty($newarr))
       
 //  drupal_set_message(serialize($newarr));
+  
+  
+  wisski_pathbuilder_rescue_values($form, $form_state);
+}
+
+function wisski_pathbuilder_cls_multi_submit($form, &$form_state) {
+  $form_state['rebuild'] = TRUE;
+  
+  $offset = $form_state['clicked_button']['#parents'];
+  
+  $button_name = $offset[count($offset)-1];
+  
+  //drupal_set_message(serialize($offset));
+  
+  $my_key = $offset[count($offset)-1];
+  
+  //unset($offset[count($offset)-1]);
+  unset($offset[count($offset)-1]);
+
+  //$offset[] = 'button';
+  $offset = array_values($offset);
+  $tmpval = &$form_state['values'];
+  
+  foreach($offset as $off) {
+    $tmpval = &$tmpval[$off];
+  }
+  
+  $my_key = str_replace('wisski_pathbuilder_cls_button_', '', $my_key);
+  
+  $arr = explode('_', $my_key);
+  
+  $tmpval[$arr[0] . '_' . $arr[1]] = "";
   
   
   wisski_pathbuilder_rescue_values($form, $form_state);
@@ -3879,21 +3926,21 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
               /*          
               $tmpVal[$arr['id'] . '_' . $tmpi]['#prefix'] = "<div id=\"wisski_pathbuilder_field_wrapper_" . $uuid . "\">";
               $tmpVal[$arr['id'] . '_' . $tmpi]['#suffix'] = "</div>";
-
-              $tmpVal[$arr['id'] . '_' . $tmpi]["button"]['wisski_pathbuilder_cls_button_' . $uuid] = array(
+*/
+              $tmpVal['wisski_pathbuilder_cls_button_' . $arr['id'] . '_' . $tmpi] = array(
                 '#type' => 'image_button',
                 '#src' => 'sites/all/themes/blendedmalts/pics/ico_cls.png',
                 '#attributes' => array('class' => 'wki-button-undupl wisski_undupl_single', 
                 'alt' => t('Clear path with id ' . $arr['id'] . '_' . $tmpi)),
          //   '#parents' => $myparents,
-                '#submit' => array('wisski_pathbuilder_cls_submit'),
+                '#submit' => array('wisski_pathbuilder_cls_multi_submit'),
                 '#ahah' => array(
                   'event' => 'click',
                   'path' => 'wisski_pathbuilder/duplicate/' . $arr['id'], //ahah_helper_path($path_structure),
-                  'wrapper' => 'wisski_pathbuilder_field_wrapper_' . $uuid,
+                  'wrapper' => 'wisski_pathbuilder_ontotext_wrapper_' . $uuid,
                 ),
               );
-              */
+              
               
               $def[$arr['id'] . '_' . $tmpi] = $tmpVal[$arr['id'] . '_' . $tmpi]['#default_value']; 
             }
