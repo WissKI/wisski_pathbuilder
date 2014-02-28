@@ -127,7 +127,7 @@ function wisski_pathbuilder_getEnabledInternaGroups() {
  * Returns all ids of paths from the database that are groups for a certain individual or concept.
  * 
  * @return an array of ids of paths that are groups. Not the paths itself.
- * @author Mark Fichtner
+ * @author Mark Fichtner, Martin Scholz
  */
 function wisski_pathbuilder_getGroupsForConcept($con, $is_individual = TRUE, $type = 1) {
 
@@ -138,21 +138,27 @@ function wisski_pathbuilder_getGroupsForConcept($con, $is_individual = TRUE, $ty
 
   $groupids = array();
   
-  $mycon = $con;
-
   if($is_individual) {  
-    $q = "SELECT ?z WHERE { <$con> rdf:type ?z } LIMIT 1";
+    $concepts = array();
+
+    $q = "SELECT ?z WHERE { <$con> rdf:type ?z }";
     
-    if($row = wisski_store_getObj()->wisski_ARCAdapter_getStore()->query($q, 'row')) {
-      $mycon = $row['z'];
+    if($rows = wisski_store_getObj()->wisski_ARCAdapter_getStore()->query($q, 'rows')) {
+      foreach ($rows as $row) {
+        $concepts[] = $row['z'];
+      }
     }
+  } else {
+    $concepts = array($con);
   }
   
   while($arr = db_fetch_array($result)) {
+    if( ($arr["type"] % $type) != 0) continue;
     $samepart = _wisski_pathbuilder_calculate_group_samepart($arr['id']);
-    if($samepart['x' . floor(count($samepart)/2)] == $mycon) { 
-      if( ($arr["type"] % $type) == 0)
+    foreach ($concepts as $mycon) {
+      if($samepart['x' . floor(count($samepart)/2)] == $mycon && !in_array($arr['id'], $groupids)) { 
         $groupids[] = $arr["id"];
+      }
     }
   }
   
@@ -4038,8 +4044,13 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
             $elementwrap .= '<div class="wki-data-item"><div class="wki-data-label">' . check_plain($arr['name']) . '</div>';
             $elements = "";
             foreach($out['result']['rows'] as $result1) {
-              if($arr['disamb'] > 0) { 
-                $elements .= '<div class="wki-data-value"><a href="' . $result1[('x' . ($arr['disamb']-1))] . '">' . check_plain($result1['out']) . '</a></div>';
+              if($arr['disamb'] > 0) {
+                $groupids = wisski_pathbuilder_getInternaGroupsForConcept($result1[('x' . ($arr['disamb']-1))]);
+                if($groupids && count($groupids) > 0) {
+                  $elements .= '<div class="wki-data-value"><a href="' . $result1[('x' . ($arr['disamb']-1))] . '">' . check_plain($result1['out']) . '</a></div>';
+                } else {
+                  $elements .= '<div class="wki-data-value">' . check_plain($result1['out']) . '</div>';
+                }
               } else {
                 $elements .= '<div class="wki-data-value">' . check_plain($result1['out']) . '</div>';
               }
