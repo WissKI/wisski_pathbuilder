@@ -1116,7 +1116,7 @@ function wisski_pathbuilder_getGroupIDForIndividual($ind, $type = 1) {
 
   foreach($results as $result) {
     $id = wisski_pathbuilder_getGroupIDForConcept($result['x'], $type);
-    if($id)
+    if($id > 0)
       return $id;
   }
   return -1;
