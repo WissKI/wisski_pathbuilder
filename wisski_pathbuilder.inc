@@ -4829,13 +4829,14 @@ function wisski_pathbuilder_generateGroupName($title, $groupid, $data = NULL) {
   
   $title_from_db = db_fetch_array($result);
   
-  if(empty($title_from_db) || empty($title_from_db['title'])) {
+  if(empty($title_from_db) || empty($title_from_db['title']) || $title_from_db['title'] == $oldtitle) {
     $out = _wisski_pathbuilder_generateGroupName(wisski_store_getObj()->wisski_ARCAdapter_addNamespace($title), $groupid, $data);
 
     if($out == $oldtitle)
       return check_plain($out);
     
-    if(!empty($title_from_db) && empty($title_from_db['title']))
+    // fallback, if there is now a better title, write this to the database!
+    if(!empty($title_from_db) && (empty($title_from_db['title']) || $title_from_db['title'] == $oldtitle))
       db_query("UPDATE {wisski_title_cache} SET title = '" . mysql_real_escape_string($out) . "' WHERE uri = '" . mysql_real_escape_string($title) . "'");
     else
       db_query("INSERT INTO {wisski_title_cache} VALUES ('" . mysql_real_escape_string($title) . "', '" . mysql_real_escape_string($out) . "')");
