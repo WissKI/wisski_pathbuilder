@@ -3664,14 +3664,29 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
       // Edit    
       } else if($input == 2) {
 
-        $q = wisski_pathbuilder_get_sparql($arr['id'], $spqcondition, FALSE, 0, TRUE, array("?out"));
+        if($arr['disamb'] > 0)
+          $q = wisski_pathbuilder_get_sparql($arr['id'], $spqcondition, FALSE, 0, TRUE, array("?x" . ($arr['disamb']-1) ,"?out"));
+        else
+          $q = wisski_pathbuilder_get_sparql($arr['id'], $spqcondition, FALSE, 0, TRUE, array("?out"));
 
         if(!isset($wasHere[$q]))
           $wasHere[$q] = 0;
+
         $out = wisski_store_getObj()->wisski_ARCAdapter_getStore()->query($q);
         $resultarr = $out['result']['rows'][$wasHere[$q]];
         $result = $out['result']['rows'][$wasHere[$q]]['out'];
         $wasHere[$q] = $wasHere[$q] +1;
+
+        $node = node_load(arg(1));
+        $title = $node->title;
+                
+        // TODO: Check this in
+        while(!empty($result) && !empty($out['result']['rows'][$wasHere[$q]]['out']) && $resultarr[('x' . ($arr['disamb']-1))] == wisski_store_getObj()->wisski_ARCAdapter_delNamespace($title)) {
+          $resultarr = $out['result']['rows'][$wasHere[$q]];
+          $result = $out['result']['rows'][$wasHere[$q]]['out'];
+          $wasHere[$q]++;
+        }
+
 
         $row_information = module_invoke_all("pb_fieldinformation", $arr['fieldtype']);
         
@@ -4030,8 +4045,23 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
         
         $resultarr = $out['result']['rows'][$wasHere[$q]];
         $result = $out['result']['rows'][$wasHere[$q]]['out'];
-
         $wasHere[$q] = $wasHere[$q] +1;
+
+        // optimization
+        if(empty($result))
+          continue;
+
+
+        $node = node_load(arg(1));
+        $title = $node->title;
+                
+        // TODO: Check this in
+        while(!empty($result) && !empty($out['result']['rows'][$wasHere[$q]]['out']) && $resultarr[('x' . ($arr['disamb']-1))] == wisski_store_getObj()->wisski_ARCAdapter_delNamespace($title)) {
+          $resultarr = $out['result']['rows'][$wasHere[$q]];
+          $result = $out['result']['rows'][$wasHere[$q]]['out'];
+          $wasHere[$q]++;
+        }
+
         $elementwrap = "";
         
         $row_information = module_invoke_all("pb_fieldinformation", $arr['fieldtype']);
