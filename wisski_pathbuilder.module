@@ -238,7 +238,7 @@ function wisski_pathbuilder_elements() {
 
 function theme_wisski_pathbuilder_dragtable($element) {
   //drupal_set_message("Hallo drag table");
-//  drupal_set_message(htmlentities(serialize($element)));
+  //drupal_set_message(htmlentities(serialize($element)));
 
   $table_rows = array();
   $remaining = array();
@@ -268,31 +268,33 @@ function theme_wisski_pathbuilder_dragtable($element) {
   }
   */
 
+  // get the input fields and weight fields
   preg_match_all('/<div class=\"form-item\".*?id=\"(.*?)\".*?>([^`]*?)<\/div>/', $element['#children'], $matches);
-  $remaining = preg_replace('/<div class=\"form-item\".*?id=\"(.*?)\".*?>([^`]*?)<\/div>/', '', $element['#children']);
-  
+  $remaining = preg_replace('/<div class=\"form-item\".*?id=\"(.*?)\".*?>([^`]*?)<\/div>/', '', $element['#children']); 
+    
+  // get the buttons
   preg_match_all('/<input type=\"image\".*?id=\"(.*?)\".*?>/', $remaining, $buttons);
   $remaining = preg_replace('/<input type=\"image\".*?id=\"(.*?)\".*?>/', '', $remaining);
-    
-  //drupal_set_message("matches: " . serialize($remaining));
-  
+
+
+  // put them into fields
   $data = array();
   $weightkey = array();
   
+  // at first take the input fields and put them into the data array according to their id  
   foreach($matches[1] as $key => $value) {
     $data[$value] = $matches[0][$key];
-    //drupal_set_message("strpos auf $value: " . serialize(strpos("-weight-", $value)));
+
+    // if it is a weight, save the weights key
     if(strpos($value, "-weight-") !== FALSE) {
       $weightkey[] = $value;
     }
   }
   
+  // also sort the buttons by their keys
   foreach($buttons[1] as $key => $value) {
     $buttondata[$value] = $buttons[0][$key];
   }
-  
-  //drupal_set_message("data: " . serialize($data));
-  //drupal_set_message(serialize($weightkey));
   
   foreach($weightkey as $key) {
     $table_row = array();
@@ -301,11 +303,15 @@ function theme_wisski_pathbuilder_dragtable($element) {
     $unduplkey = str_replace("-weight-", "-wisski-pathbuilder-undupl-button-", $key);
     $unduplkey = str_replace("-wrapper", "", $unduplkey);
     
+    $clskey = str_replace("-weight-", "-wisski-pathbuilder-cls-button-", $key);
+    $clskey = str_replace("-wrapper", "", $clskey);
+    
     //drupal_set_message(serialize($unduplkey));
     
     $table_row[] = $data[$datakey];
     $table_row[] = $data[$key];
     $table_row[] = $buttondata[$unduplkey];
+    $table_row[] = $buttondata[$clskey];
     $table_rows[] = array('data' => $table_row, 'class' => 'draggable');
   }
     
@@ -317,7 +323,7 @@ function theme_wisski_pathbuilder_dragtable($element) {
   
   //drupal_set_message(serialize($table_rows));
   
-  $header = array('Field', 'Weight', 'Unduplicate');
+  $header = array('Field', 'Weight', 'Unduplicate', 'Clear');
   $id = $element['#attributes']['id'];
   
   $form = array('#value' => theme('table', $header, $table_rows, array('id' => $id)));
@@ -626,13 +632,13 @@ function wisski_pathbuilder_rescue_values($form, &$form_state) {
   
   $form_state['wisskiValues'] = $form_state['values'];
   
-//  drupal_set_message("rescued!");  
+  //drupal_set_message("rescued!");  
   if(empty($form_state['wisskiValues']['old_values'])) {
     $form_state['wisskiValues']['old_values'] = $form_state['values']['defaults'];
   }
   
-  if(empty($form_state['wisskiValues']['paths'])) {
-    $form_state['wisskiValues']['paths'] = $form_state['values']['paths'];
+  if(empty($form_state['wisskiValues']['old_paths'])) {
+    $form_state['wisskiValues']['old_paths'] = $form_state['values']['paths'];
   }
-  
+  //drupal_set_message(serialize($form_state['wisskiValues']));
 }
