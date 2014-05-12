@@ -236,9 +236,17 @@ function wisski_pathbuilder_elements() {
   return $type;
 }
 
-function theme_wisski_pathbuilder_dragtable($element) {
-  //drupal_set_message("Hallo drag table");
+function theme_wisski_pathbuilder_dragtable_old($element) {
+  drupal_set_message("Hallo drag table old");
   //drupal_set_message(htmlentities(serialize($element)));
+  //foreach($element as $key => $value) {
+    //drupal_set_message("my key is: " . $key);
+    //drupal_set_message("my value is: " . serialize($value));
+  //}
+  
+  //drupal_set_message("my prefix is: " . serialize($element['#prefix']));
+
+//  return drupal_render($element);
 
   $table_rows = array();
   $remaining = array();
@@ -268,13 +276,96 @@ function theme_wisski_pathbuilder_dragtable($element) {
   }
   */
 
+//  drupal_set_message("a entity: ");
+  //drupal_set_message(htmlentities($element['#children']) . "eof!", "error");
+
+  $groupmode = false;
+
+  //$doc = new DOMDocument();
+  //$doc->loadHTML(htmlentities($element['#children']) );
+
+  //foreach ($doc->childNodes as $item)
+  
+  //$xml = simplexml_load_string('<document>' . $element['#children'] . '</document>');
+
+  //if($xml)
+  //  drupal_set_message("xml: " . serialize($xml->fieldset->asXML()));
+
+/*
+  foreach($xml->children() as $el => $val) {
+    drupal_set_message("el: " . $el . " and val: " . $val);
+  }
+*/
+
+/*
+  foreach($element as $el => $val) {
+    drupal_set_message("el: " . $el . " and val: " . htmlentities($val));
+  }
+*/
+
+  $xml = simplexml_load_string('<document>' . $element['#children'] . '</document>');
+
+
+  // is it a ontotext -> fields? otherwise its a group
   // get the input fields and weight fields
-  preg_match_all('/<div class=\"form-item\".*?id=\"(.*?)\".*?>([^`]*?)<\/div>/', $element['#children'], $matches);
-  $remaining = preg_replace('/<div class=\"form-item\".*?id=\"(.*?)\".*?>([^`]*?)<\/div>/', '', $element['#children']); 
+  if(strpos($element['#prefix'], 'wisski_pathbuilder_ontotext_wrapper_') !== FALSE) {
     
+
+    
+    preg_match_all('/<div class=\"form-item\".*?id=\"(.*?)\".*?>([^`]*?)<\/div>/', $xml->div->asXML(), $matches);
+    $remaining = str_replace($xml->fieldset->asXML() , '', $element['#children']);
+    
+    
+ //   drupal_set_message(htmlentities($element['#children']));
+    
+    /*
+    preg_match_all('/<div class=\"form-item\".*?id=\"(.*?)\".*?>([^`]*?)<\/div>/', $element['#children'], $matches);
+    $remaining = preg_replace('/<div class=\"form-item\".*?id=\"(.*?)\".*?>([^`]*?)<\/div>/', '', $element['#children']);
+    */
+  } else if(strpos($element['#prefix'], 'wisski_pathbuilder_ontogroup_wrapper_') !== FALSE) {
+  
+    //drupal_set_message(htmlentities(serialize($element)));
+    $groupmode = true;
+
+
+ /*   
+    // get fieldsets
+    //preg_match_all('/<fieldset class=\"wki-fieldset-edit wisski_formedit .*?\".*?id=\"(.*?)\".*?>([^`]*?)<\/fieldset>/', $element['#children'], $matches);
+    //$remaining = preg_replace('/<fieldset class=\"wki-fieldset-edit wisski_formedit (.*?)\".*?id=\"(.*?)\".*?>([^`]*?)<\/fieldset>/', '', $element['#children']);
+*/
+
+
+    preg_match_all('/<fieldset class=\"wki-fieldset-edit wisski_formedit .*?\".*?id=\"(.*?)\".*?>([^`]*?)<\/fieldset>/', $xml->fieldset->asXML(), $matches);
+    
+    $remaining = str_replace($xml->fieldset->asXML() , '', $element['#children']);
+
+    drupal_set_message(htmlentities($remaining));
+
+    //$xml = simplexml_load_string('<document>' . $remaining . '</document>');
+    
+    
+
+    // get weights
+    preg_match_all('/<div class=\"form-item\".*?id=\"(.*?)\".*?>([^`]*?)<\/div>/', $remaining, $weightmatches);
+    $remaining = preg_replace('/<div class=\"form-item\".*?id=\"(.*?)\".*?>([^`]*?)<\/div>/', '', $remaining);
+
+    foreach($weightmatches as $key => $value) {
+      $matches[$key] = array_merge($matches[$key], $value);
+    }
+    
+    
+
+  } else {
+
+  } 
+  
+//  drupal_set_message(serialize($matches));
+  
   // get the buttons
   preg_match_all('/<input type=\"image\".*?id=\"(.*?)\".*?>/', $remaining, $buttons);
   $remaining = preg_replace('/<input type=\"image\".*?id=\"(.*?)\".*?>/', '', $remaining);
+
+//  drupal_set_message(serialize($matches));
 
 
   // put them into fields
@@ -296,13 +387,28 @@ function theme_wisski_pathbuilder_dragtable($element) {
     $buttondata[$value] = $buttons[0][$key];
   }
   
+  //drupal_set_message("data: " . serialize($data));
+  
+  //drupal_set_message("data is: " . serialize($weightkey));
+  
   foreach($weightkey as $key) {
     $table_row = array();
-    $datakey = str_replace("-weight-", "-", $key);
+    if($groupmode) {
+      $datakey = "wki-fieldset-edit-" . substr($key, (strpos($key, '-weight-') + 8));
+      $datakey = str_replace("-wrapper", "", $datakey);
+      foreach($data as $dkey => $dvalue) {
+        if(strpos($dkey, $datakey) !== FALSE)
+          $datakey = $dkey;
+      }
+    } else
+      $datakey = str_replace("-weight-", "-", $key);
+    
+    //drupal_set_message("my datakey is: " . $datakey);
     
     $unduplkey = str_replace("-weight-", "-wisski-pathbuilder-undupl-button-", $key);
     $unduplkey = str_replace("-wrapper", "", $unduplkey);
-    
+//    drupal_set_message("undupl: " . serialize($unduplkey));
+//    drupal_set_message(serialize($buttondata));
     $clskey = str_replace("-weight-", "-wisski-pathbuilder-cls-button-", $key);
     $clskey = str_replace("-wrapper", "", $clskey);
     
@@ -310,10 +416,28 @@ function theme_wisski_pathbuilder_dragtable($element) {
     
     $table_row[] = $data[$datakey];
     $table_row[] = $data[$key];
+  
     $table_row[] = $buttondata[$unduplkey];
-    $table_row[] = $buttondata[$clskey];
+
+    if(!$groupmode)
+      $table_row[] = $buttondata[$clskey];
+    else
+      $table_row[] = array();
+      
+  //  drupal_set_message("table row: " . htmlentities($table_row[1]));
+  
+  //  drupal_set_message("tr data: " . count($table_row));
+      
     $table_rows[] = array('data' => $table_row, 'class' => 'draggable');
   }
+  
+
+  /*
+  drupal_set_message(serialize(count($table_rows)));
+  if(count($table_rows) > 1) {
+    drupal_set_message(serialize($table_rows));
+  }
+  */
     
   /*
   if(is_array($element)) {
@@ -322,16 +446,300 @@ function theme_wisski_pathbuilder_dragtable($element) {
   */
   
   //drupal_set_message(serialize($table_rows));
-  
+
+//  if($groupmode)
+//    $header = array('Field', 'Weight', 'Unduplicate');
+//  else {
   $header = array('Field', 'Weight', 'Unduplicate', 'Clear');
+    //drupal_set_message(serialize($table_rows));
+//  }
   $id = $element['#attributes']['id'];
+
+  $uuid = str_replace("wki_drag_table", "", $id);
+  
+//  drupal_set_message("id: " . serialize($id));
+
+//  drupal_set_message(serialize($table_rows));
+  
+  //$form = array('#value' => theme('table', $header, $table_rows, array('id' => $id)));
+  
+  //drupal_set_message(drupal_render($form));
+  
+  //drupal_set_message(serialize($remaining));
+  
+  //drupal_add_tabledrag($id, 'order', 'sibling', 'wki-weight-' . $uuid);
+  
+  //$output = drupal_render($form);
+
+  drupal_add_tabledrag($id, 'order', 'sibling', 'wki-weight-' . $uuid);
+
+  $output = theme('table', $header, $table_rows, array('id' => $id));
+
+
+  $javascript = drupal_add_js(NULL, NULL);
+  //drupal_set_message(serialize($javascript['setting']));
+/*
+  if(isset($javascript['setting'])) {
+    $output .= '<script type="text/javascript">jQuery.extend(Drupal.settings, '. drupal_to_js(call_user_func_array('array_merge_recursive', $javascript['setting'])) .');</script>';
+  }
+ */ 
+//  $output = theme('table', $header, $table_rows, array('id' => $id));
+
+  $output .= $remaining;
+
+//  drupal_add_tabledrag($id, 'order', 'sibling', 'wki-weight-' . $uuid);
+
+//  drupal_add_tabledrag($id, 'order', 'sibling', 'wki-weight-' . $uuid);
+
+  return $output;
+}
+
+function theme_wisski_pathbuilder_dragtable($element) {
+  //drupal_set_message("Hallo drag table");
+  //drupal_set_message(htmlentities(serialize($element)));
+  //foreach($element as $key => $value) {
+    //drupal_set_message("my key is: " . $key);
+    //drupal_set_message("my value is: " . serialize($value));
+  //}
+  
+  //drupal_set_message("my prefix is: " . serialize($element['#prefix']));
+
+//  return drupal_render($element);
+
+  $table_rows = array();
+  $remaining = array();
+  
+  //drupal_set_message(serialize($element['#children']));
+
+/*  
+  if(is_array($element)) {
+    foreach($element as $key => $value) {
+      $table_row = array();
+      if(is_array($value) && isset($value['#type'])) {
+        //drupal_set_message(serialize($value));
+        if($value['#type'] == "weight") {
+          continue; // weights are added with their fields below
+        } else if($value['#type'] == "hidden") {
+          // hidden goes into the remaining parts
+          $remaining .= drupal_render($value);
+        } else {
+          // anything else - get it here!
+          drupal_set_message(serialize($value));
+          $table_row[] = drupal_render($value);
+          $table_row[] = drupal_render($element['weight_' . $key]);
+          $table_rows[] = array('data' => $table_row, 'class' => 'draggable');
+        }
+      }
+    }
+  }
+  */
+
+//  drupal_set_message("a entity: ");
+  //drupal_set_message(htmlentities($element['#children']) . "eof!", "error");
+
+  $groupmode = false;
+
+  //$doc = new DOMDocument();
+  //$doc->loadHTML(htmlentities($element['#children']) );
+
+  //foreach ($doc->childNodes as $item)
+  
+  //$xml = simplexml_load_string('<document>' . $element['#children'] . '</document>');
+
+  //if($xml)
+  //  drupal_set_message("xml: " . serialize($xml->fieldset->asXML()));
+
+/*
+  foreach($xml->children() as $el => $val) {
+    drupal_set_message("el: " . $el . " and val: " . $val);
+  }
+*/
+
+/*
+  foreach($element as $el => $val) {
+    drupal_set_message("el: " . $el . " and val: " . htmlentities($val));
+  }
+*/
+//  mb_internal_encoding("UTF-8");
+  $xml = simplexml_load_string('<document>' . $element['#children'] . '</document>');
+  $remaining = $element['#children'];
+
+//  drupal_set_message(htmlentities($xml->asXML()));
+  
+  $weight = array();
+  $data = array();
+  $unduplbutton = array();
+  $clsbutton = array();
+
+  // is it a ontotext -> fields? otherwise its a group
+  // get the input fields and weight fields
+  if(strpos($element['#prefix'], 'wisski_pathbuilder_ontotext_wrapper_') !== FALSE) {
+    // always count from behind because otherwise the array is reduced in the front
+    for($i = count($xml->div)-1; $i>=0; $i--) {
+      $divxml = $xml->div[$i]->asXML();
+
+      if(strpos($divxml, '-weight-') !== FALSE) {
+        array_unshift($weight, $divxml);//$xml->div[$i]->select->asXML();        
+      } else
+        array_unshift($data, $divxml);
+      
+      unset($xml->div[$i]);
+      
+    }
+    
+ //   drupal_set_message(serialize($data));
+  
+    for($i = count($xml->input)-1; $i>=0; $i--) {
+      $buttonxml = $xml->input[$i]->asXML();
+
+      if(strpos($buttonxml, '-cls-button-') !== FALSE) {
+        array_unshift($clsbutton, $buttonxml);
+      
+        unset($xml->input[$i]);
+      } else if(strpos($buttonxml, '-undupl-button-') !== FALSE) {
+        array_unshift($unduplbutton, $buttonxml);
+
+        unset($xml->input[$i]);        
+      }
+      
+
+    }
+
+    $remaining = "";
+    
+    foreach($xml as $sub) {
+      $remaining .= $sub->asXML();
+    }
+    
+  } else if(strpos($element['#prefix'], 'wisski_pathbuilder_ontogroup_wrapper_') !== FALSE) {
+    $groupmode = true;
+
+    for($i = count($xml->fieldset)-1; $i>=0; $i--) {
+      $fieldsetxml = $xml->fieldset[$i]->asXML();
+      array_unshift($data, $fieldsetxml);
+
+      unset($xml->fieldset[$i]);
+    }
+    
+    for($i = count($xml->div)-1; $i>=0; $i--) {
+      $divxml = $xml->div[$i]->asXML();
+
+      if(strpos($divxml, '-weight-') !== FALSE) {
+        array_unshift($weight, $divxml);
+        unset($xml->div[$i]);
+      }
+
+    }
+      
+    for($i = count($xml->input)-1; $i>=0; $i--) {
+      $buttonxml = $xml->input[$i]->asXML();
+
+      if(strpos($buttonxml, '-cls-button-') !== FALSE) {
+        array_unshift($clsbutton, $buttonxml);
+      
+        unset($xml->input[$i]);
+      } else if(strpos($buttonxml, '-undupl-button-') !== FALSE) {
+        array_unshift($unduplbutton, $buttonxml);
+
+        unset($xml->input[$i]);        
+      }
+      
+
+    }
+    
+    $remaining = "";
+    
+    foreach($xml as $sub) {
+      $remaining .= $sub->asXML();
+    }
+    
+    
+    
+  } else {
+    drupal_set_message("this may not happen!", 'error');
+  } 
+    
+  //drupal_set_message("remaining is: " . serialize($remaining));
+  
+  foreach($data as $key => $value) {
+    $table_row = array();
+    
+    $table_row[] = $data[$key];
+    $table_row[] = $weight[$key];
+  
+    $table_row[] = $unduplbutton[$key];
+
+    if(!$groupmode)
+      $table_row[] = $clsbutton[$key];
+    else
+      $table_row[] = array();
+      
+  //  drupal_set_message("table row: " . htmlentities($table_row[1]));
+  
+  //  drupal_set_message("tr data: " . count($table_row));
+      
+    $table_rows[] = array('data' => $table_row, 'class' => 'draggable');
+  }
+  
+
+  /*
+  drupal_set_message(serialize(count($table_rows)));
+  if(count($table_rows) > 1) {
+    drupal_set_message(serialize($table_rows));
+  }
+  */
+    
+  /*
+  if(is_array($element)) {
+    $table_rows[] = array('data' => $element['#children'], 'class' => 'draggable');
+  }
+  */
+  
+  //drupal_set_message(serialize($table_rows));
+
+
+  $header = array('Field', 'Weight', 'Unduplicate', 'Clear');
+
+  $id = $element['#attributes']['id'];
+
+  $uuid = str_replace("wki_drag_table", "", $id);
+  
+  //drupal_set_message("id: " . serialize($id));
+
+  //drupal_set_message(serialize($table_rows));
   
   $form = array('#value' => theme('table', $header, $table_rows, array('id' => $id)));
   
+  //drupal_set_message(drupal_render($form));
+  
+  //drupal_set_message(serialize($remaining));
+  
+  drupal_add_tabledrag($id, 'order', 'sibling', 'wki-weight-' . $uuid);
+  
   $output = drupal_render($form);
-  $output .= $remaining;
 
-  drupal_add_tabledrag($id, 'order', 'sibling', 'wki-weight');
+  drupal_add_tabledrag($id, 'order', 'sibling', 'wki-weight-' . $uuid);
+
+  //$output = theme('table', $header, $table_rows, array('id' => $id));
+
+  $output .= $remaining;
+  
+  //drupal_add_tabledrag($id, 'order', 'sibling', 'wki-weight-' . $uuid);
+
+  $javascript = drupal_add_js(NULL, NULL);
+  //drupal_set_message(serialize($javascript['setting']));
+
+  if(isset($javascript['setting'])) {
+    $output .= '<script type="text/javascript">jQuery.extend(Drupal.settings, '. drupal_to_js(call_user_func_array('array_merge_recursive', $javascript['setting'])) .');</script>';
+  }
+
+//  $output = theme('table', $header, $table_rows, array('id' => $id));
+
+  //$output .= $remaining;
+
+//  drupal_add_tabledrag($id, 'order', 'sibling', 'wki-weight-' . $uuid);
+
+//  drupal_add_tabledrag($id, 'order', 'sibling', 'wki-weight-' . $uuid);
 
   return $output;
 }

@@ -630,17 +630,19 @@ function wisski_pathbuilder_duplicate($pathid = 1) {
 
   //drupal_set_message(serialize($out));
 
-  unset($out['#prefix'], $out['#suffix']);
+// this may not be in because we need the prefix as information!
+//  unset($out['#prefix'], $out['#suffix']);
   
-  //drupal_set_message(serialize($out));
+//  drupal_set_message('out is: ' . serialize($out));
   
-  //drupal_set_message(drupal_render($out));
+//  drupal_set_message(drupal_render($out));
 
   drupal_set_header('Content-Type: text/html; charset=utf-8');
 //  drupal_add_js('wisski_pathbuilder.js', 'module');
 
 
   //drupal_json(array(
+
   echo drupal_to_js(array(
         'status'   => TRUE,
         'data'     => theme('status_messages') . drupal_render($out),
@@ -952,6 +954,7 @@ function wisski_pathbuilder_cls_multi_submit($form, &$form_state) {
 }
 
 function wisski_pathbuilder_dupl_submit($form, &$form_state) {
+
 //  drupal_set_message("I'm first!","error");
 //  wisski_pathbuilder_rescue_values($form, $form_state);
 //  $arr = explode('/', $form_state['clicked_button']['#ahah']['path']);
@@ -995,6 +998,8 @@ function wisski_pathbuilder_dupl_submit($form, &$form_state) {
 //  drupal_set_message(serialize($tmpval));  
   
   $newoffset = $offset[count($offset)-1] . '_' . count($myval);
+
+  
   
 //  drupal_set_message("new offset is: " . $newoffset);
   
@@ -1474,12 +1479,15 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
   
   
   $iterator = wisski_pathbuilder_filter_undupl_button_data($iterator);
+  $iterator = wisski_pathbuilder_filter_weight_data($iterator);
   
   foreach($iterator as $v => $nonsense) {
     $current_parent_array = $parent_array;
-    $current_parent_array[] = (string)$v;  
+    //$current_parent_array[] = (string)$v;  
     //drupal_set_message("got: " . $v);
     //drupal_set_message("my group id is: " . $groupid);
+    
+    //drupal_set_message("parentarr for $v: " . serialize($current_parent_array));
     
     // wenn $v != $groupid -> duplicateable group
     
@@ -1489,7 +1497,24 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
     
     $result = db_query("SELECT * FROM {wisski_template} WHERE group_id = $groupid ORDER BY is_group ASC");
     $triples = array();
-  
+    
+    if($v != $groupid) {
+      $weight = $fs_pointer['weight_' . $v];
+      
+      global $base_url;
+      $title = $node->title;
+      
+      if(empty($title))
+        $title = $main_subject;
+      
+      if(!strpos($base_url, $title))
+         $title = wisski_store_getObj()->wisski_ARCAdapter_delNamespace($title);
+      
+      db_query("DELETE FROM {wisski_weight} WHERE field_id = '%s' AND value = '%s' AND title = '" . $title . "'", serialize($current_parent_array), mysql_real_escape_string($v));
+      db_query("INSERT INTO {wisski_weight} (weight, title, field_id, value) VALUES ($weight, '" . $title . "', '%s', '" . mysql_real_escape_string($v) . "')", serialize($current_parent_array));
+    }  
+    
+    $current_parent_array[] = (string)$v;
 
     // go through all fields
     while($row = db_fetch_array($result)) {
@@ -3280,6 +3305,8 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
   $elementbase = "";
   $multigroup = 1;
   $is_multi_group = FALSE;
+  $basearr = array();
+  $myparents = array();
 
   if(isset($grouparr['id'])) {
     $wrapper = "";
@@ -3288,13 +3315,34 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
     if($input <= 0) {
       $pos = floor(count($samepart)/2);
           
-      $sparql = wisski_pathbuilder_get_sparql($parentID, $sparqlcondition, FALSE, 0, TRUE, array("?x" . $pos));
+//      $sparql = wisski_pathbuilder_get_sparql($parentID, $sparqlcondition, FALSE, 0, TRUE, array("?x" . $pos));
+      $sparql = wisski_pathbuilder_get_sparql($grouparr['id'], $sparqlcondition, FALSE, 0, TRUE);
       
       $multigroup = wisski_store_getObj()->wisski_ARCAdapter_getStore()->query($sparql, 'rows');
-    
+      
+      $grp_val = false;
+      if(!empty($multigroup))
+        foreach($multigroup as $key => $value) {
+          for($i = 0; $i<floor(count($samepart)/2); $i++) { 
+            $grp_val['x' . $i] = $value['x' . $i];
+            $grp_val['y' . $i] = $samepart['y' . $i];
+          }
+          $grp_val['x' . $i] = $value['x' . $i];
+          
+          $multigroup[$key] = $grp_val;
+        }
+      
+//          drupal_set_message(serialize($grp_val)); 	    
+
+      
+      
+      $parent_array[] = (string)$grouparr['id'];
+//      $parent_array[] = (string)$grouparr['id'];
+      
       drupal_add_js('misc/collapse.js');
       $wrapper .= '<fieldset class="collapsible wki-fieldset-view"><legend>' . $grouparr['name'] . '</legend>'; // <- Schwule schreibweise :P
-      $parent_array[] = (string)$grouparr['id'];
+
+//      $parent_array[] = (string)$grouparr['id'];
     } else { // edit, add, ...
     
       if($grouparr['fieldtype'] != "ontogroup") {
@@ -3313,7 +3361,7 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
         if($input == 2) {
           $pos = floor(count($samepart)/2);
                     
-          $q = wisski_pathbuilder_get_sparql($grouparr['id'], $sparqlcondition, FALSE, 0, TRUE, array("?x" . $pos));
+          $q = wisski_pathbuilder_get_sparql($grouparr['id'], $sparqlcondition, FALSE, 0, TRUE);
           $out = wisski_store_getObj()->wisski_ARCAdapter_getStore()->query($q);
           $results = $out['result']['rows'];
 
@@ -3373,7 +3421,8 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
             
         //drupal_set_message(htmlentities($q));
         
-        $myparents = $parents;
+        $myparents = $parent_array;
+        $myparents[] = $grouparr['id'];
         $myparents[] = $grouparr['id'];
 //        drupal_set_message("fs is: " . serialize($form_state[$grouparr['id']]["button"]));
 
@@ -3384,8 +3433,7 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
           $uuid = wisski_get_uid();
         }
         
-        
-        
+
         // generate a duplicate button
         $tmp['wisski_pathbuilder_dupl_button_' . $uuid] = array(
           '#type' => 'image_button',
@@ -3405,25 +3453,30 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
 //        $valArr['button'] = $tmp;
         
         $tmpVal = array();
-        $tmpVal['#type']   = 'markup';
-
+        //$tmpVal['#type']   = 'markup';
+        $tmpVal['#type'] = 'wisski_pathbuilder_dragtable';
+        
         $tmpVal['#prefix'] = '<div id="wisski_pathbuilder_ontogroup_wrapper_' . $uuid . '">'; // $grouparr['id'];
         $tmpVal['#suffix'] = '</div>';
         $tmpVal['#tree'] = TRUE;        
 
   //      drupal_set_message("grp_val is: " . serialize($grp_val));
   //      drupal_set_message("id: " . $grouparr['id']);
-        $grp_val = wisski_pathbuilder_filter_undupl_button_data($grp_val);
-  
         $countiter = 0;
         
         if(empty($grp_val))
-          $grp_val = array($grouparr['id'] . "_0");
+          $grp_val = array($grouparr['id'] . "_0" => $grouparr['id'] . "_0");
+        else {
+          $grp_val = wisski_pathbuilder_filter_undupl_button_data($grp_val);
+          $grp_val = wisski_pathbuilder_filter_weight_data($grp_val);
+        }
+
 
         // for every value which is there generate an own group.
         foreach($grp_val as $key => $a_group) {        
 //          drupal_set_message("from db is: " . serialize($from_db));
 //          drupal_set_message("group is: $key " . serialize($grp_val));
+//          drupal_set_message("name is: " . serialize($grouparr['name']));
           if($from_db) {
             $paths[$grouparr['id'] . "_" . $countiter]['path'] = $a_group;
 //            $paths = &$paths[$grouparr['id'] . "_" . $countiter]['children'];
@@ -3432,10 +3485,43 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
           $tmpVal[$grouparr['id'] . "_" . $countiter] = array(
             '#collapsed' => FALSE,
             '#type' => 'fieldset',
-            '#attributes' => array('class' => 'wki-fieldset-edit wisski_formedit'),
+            '#attributes' => array('class' => 'wki-fieldset-edit wisski_formedit', 'id' => 'wki-fieldset-edit-' . $grouparr['id'] . '-' . $countiter . '-'  . $uuid ),
             '#collapsible' => '1',
             '#title' => t($grouparr['name']),
             '#tree' => TRUE,
+          );
+          
+          $node = node_load(arg(1));
+          
+          global $base_url;
+          $title = $node->title;
+      
+          if(!strpos($base_url, $title))
+            $title = wisski_store_getObj()->wisski_ARCAdapter_delNamespace($title);
+                    
+          // get the weight of the field at the current position
+          $weightresult = db_query("SELECT weight FROM {wisski_weight} WHERE title = '" . $title . "' AND field_id = '%s' AND value = '%s'", serialize($myparents), $grouparr['id'] . '_' . $countiter);
+
+          // is there a weight in the database? or is it in the forms? if not, assume one
+          if($weightrow = db_fetch_array($weightresult)) {
+            $weight = $weightrow['weight'];
+          } else if(!empty($form_state[$grouparr['id']][$grouparr['id']]['weight_' . $grouparr['id'] . '_' . $countiter])) {
+            $weight = $form_state[$grouparr['id']][$grouparr['id']]['weight_' . $grouparr['id'] . '_' . $countiter];
+          } else 
+            $weight = $countiter;
+          
+//          drupal_set_message(serialize($form_state[$grouparr['id']][$grouparr['id']]['weight_' . $grouparr['id'] . '_' . $countiter]));
+
+          // construct a weight-field              
+          $tmpVal[$grouparr['id'] . '_' . $countiter]['#weight'] = $weight;
+          $tmpVal['weight_' . $grouparr['id'] . '_' . $countiter ] = array(
+            '#type' => 'weight',
+            '#title' => t('Weight'),
+            '#weight' => $weight,
+            '#attributes' => array('class' => 'wki-weight-' . $uuid),
+            '#default_value' => $tmpVal[$grouparr['id'] . '_' . $countiter]['#weight'],
+            '#delta' => 10,
+//            '#description' => t('Optional. In the menu, the heavier items will sink and the lighter items will be positioned nearer the top.')
           );
           
           $tmpVal['wisski_pathbuilder_undupl_button_' . $grouparr['id'] . '_' . $countiter] = array(
@@ -3456,6 +3542,8 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
         }
         
         $valArr[$grouparr['id']] = $tmpVal;
+        $valArr[$grouparr['id']]['#attributes'] = array('id' => 'wki_drag_table'. $uuid);
+        
         $valArr['button'] = $tmp;              
         $form['form'][$grouparr['id']] = $valArr;
          
@@ -3480,6 +3568,7 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
   if(count($multigroup) > $multicount)
     $multicount = count($multigroup);
   $savepaths = &$paths;    
+  
   for($multiit = 0; $multiit < $multicount; $multiit++) {
   $elementbase = "";  
   
@@ -3519,6 +3608,8 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
   while($arr = db_fetch_array($resultfields)) {
     $iterator++;
     $continue = 0;
+
+//    drupal_set_message(serialize($arr));
 
     foreach($treetype as $type) 
       if(($arr['type'] % $type) == 0)
@@ -3592,8 +3683,8 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
 
             $tmpVal['#tree'] = TRUE;
 
-            $myparents = $parents;
-            $myparents[] = $arr['id'];              
+//            $myparents = $parents;
+//            $myparents[] = $arr['id'];              
 
             $tmp['wisski_pathbuilder_dupl_button_' . $uuid] = array(
               '#type' => 'image_button', 
@@ -3636,17 +3727,17 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
               global $base_url;
               
               // is the title correct?
-              if(!strpos($base_url, $title))
+              if(strpos($base_url, $title) === FALSE)
                 $title = wisski_store_getObj()->wisski_ARCAdapter_delNamespace($title);
               
               // get the weight of the field at the current position
               $weightresult = db_query("SELECT weight FROM {wisski_weight} WHERE title = '" . $title . "' AND field_id = '%s' AND value = '%s'", serialize($my_parent_array), !is_null($fs[$arr['id']][$arr['id']][$arr['id'] . '_' . $tmpi]) ? $fs[$arr['id']][$arr['id']][$arr['id'] . '_' . $tmpi] : $out['result']['rows'][$tmpi]['out']);
               
               // is there a weight in the database? or is it in the forms? if not, assume one
-              if($weightrow = db_fetch_array($weightresult)) {
+              if(!empty($node) && $weightrow = db_fetch_array($weightresult)) {
                 $weight = $weightrow['weight'];
-              } else if(!empty($fs[$arr['id']]["button"]['weight_' . $arr['id'] . '_' . $tmpi])) {
-                $weight = $fs[$arr['id']]["button"]['weight_' . $arr['id'] . '_' . $tmpi];
+              } else if(!empty($fs[$arr['id']][$arr['id']]['weight_' . $arr['id'] . '_' . $tmpi])) {
+                $weight = $fs[$arr['id']][$arr['id']]['weight_' . $arr['id'] . '_' . $tmpi];
               } else 
                 $weight = $tmpi;
 
@@ -3656,16 +3747,16 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
                 '#type' => 'weight',
                 '#title' => t('Weight'),
                 '#weight' => $weight,
-                '#attributes' => array('class' => 'wki-weight'),
+                '#attributes' => array('class' => 'wki-weight-' . $uuid),
                 '#default_value' => $tmpVal[$arr['id'] . '_' . $tmpi]['#weight'],
                 '#delta' => 10,
 //                '#description' => t('Optional. In the menu, the heavier items will sink and the lighter items will be positioned nearer the top.')
               );
 
-              if($tmpi > 0) {
-                $tmpVal[$arr['id'] . '_' . $tmpi]['#prefix'] = '<div class="wki-no-label">'; 
-                $tmpVal[$arr['id'] . '_' . $tmpi]['#suffix'] = '</div>';
-              }
+//              if($tmpi > 0) {
+//                $tmpVal[$arr['id'] . '_' . $tmpi]['#prefix'] = '<div class="wki-no-label">'; 
+//                $tmpVal[$arr['id'] . '_' . $tmpi]['#suffix'] = '</div>';
+//              }
               if(!empty($fs[$arr['id']][$arr['id']][$arr['id'] . '_' . $tmpi])) {
                 $tmpVal[$arr['id'] . '_' . $tmpi]['#default_value'] = $fs[$arr['id']][$arr['id']][$arr['id'] . '_' . $tmpi];
 //              drupal_set_message("setting authdata!" . serialize($fs));
@@ -3704,7 +3795,7 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
         $resout = "";
         if($results) {
           $itempath = unserialize($arr['path_array']); 
-          foreach($results as $result) {
+         foreach($results as $result) {
             if($resout != "")
               $resout .= "<br>";
             for($itera = 0; $itera <= $arr['length']; $itera++) {
@@ -3895,8 +3986,8 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
 //            $tmpVal['#attributes'] = '
             $tmpVal['#tree'] = TRUE;
           
-            $myparents = $parents;
-            $myparents[] = $arr['id'];
+//            $myparents = $parents;
+//            $myparents[] = $arr['id'];
            
                             
 
@@ -3948,19 +4039,21 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
               global $base_url;
               
               // is the title correct?
-              if(!strpos($base_url, $title))
+              if(strpos($base_url, $title) === FALSE)
                 $title = wisski_store_getObj()->wisski_ARCAdapter_delNamespace($title);
               
               // get the weight of the field at the current position
               $weightresult = db_query("SELECT weight FROM {wisski_weight} WHERE title = '" . $title . "' AND field_id = '%s' AND value = '%s'", serialize($my_parent_array), !is_null($fs[$arr['id']][$arr['id']][$arr['id'] . '_' . $tmpi]) ? $fs[$arr['id']][$arr['id']][$arr['id'] . '_' . $tmpi] : $out['result']['rows'][$tmpi]['out']);
-              
+
               // is there a weight in the database? or is it in the forms? if not, assume one
-              if($weightrow = db_fetch_array($weightresult)) {
+              if(!empty($node) && $weightrow = db_fetch_array($weightresult) ) {
                 $weight = $weightrow['weight'];
-              } else if(!empty($fs[$arr['id']]["button"]['weight_' . $arr['id'] . '_' . $tmpi])) {
-                $weight = $fs[$arr['id']]["button"]['weight_' . $arr['id'] . '_' . $tmpi];
+              } else if(!empty($fs[$arr['id']][$arr['id']]['weight_' . $arr['id'] . '_' . $tmpi])) {
+                $weight = $fs[$arr['id']][$arr['id']]['weight_' . $arr['id'] . '_' . $tmpi];
               } else 
                 $weight = $tmpi;
+
+//              drupal_set_message("I have in store: " . $fs[$arr['id']]["button"]['weight_' . $arr['id'] . '_' . $tmpi]);
 
               // construct a weight-field              
               $tmpVal[$arr['id'] . '_' . $tmpi]['#weight'] = $weight;
@@ -3968,7 +4061,7 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
                 '#type' => 'weight',
                 '#title' => t('Weight'),
                 '#weight' => $weight,
-                '#attributes' => array('class' => 'wki-weight'),
+                '#attributes' => array('class' => 'wki-weight-' . $uuid),
                 '#default_value' => $tmpVal[$arr['id'] . '_' . $tmpi]['#weight'],
                 '#delta' => 10,
 //                '#description' => t('Optional. In the menu, the heavier items will sink and the lighter items will be positioned nearer the top.')
@@ -4004,12 +4097,12 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
                 ),
               );
 */             
-
+/*
               if($tmpi > 0) {
                 $tmpVal[$arr['id'] . '_' . $tmpi]['#prefix'] = '<div class="wki-no-label">'; 
                 $tmpVal[$arr['id'] . '_' . $tmpi]['#suffix'] = '</div>';
               }
-
+*/
               if(!is_null($fs[$arr['id']][$arr['id']][$arr['id'] . '_' . $tmpi])) {
                 $tmpVal[$arr['id'] . '_' . $tmpi]['#default_value'] = $fs[$arr['id']][$arr['id']][$arr['id'] . '_' . $tmpi];
                 $tmpVal[$arr['id'] . '_auth_data_' . $tmpi]['#default_value'] = $fs[$arr['id']][$arr['id']][$arr['id'] . '_auth_data_' . $tmpi];
@@ -4040,6 +4133,8 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
               
               $def[$arr['id'] . '_' . $tmpi] = $tmpVal[$arr['id'] . '_' . $tmpi]['#default_value']; 
             }
+            
+//            drupal_set_message(serialize($tmpVal));
             
             $tmp['wisski_pathbuilder_dupl_button_' . $uuid] = $duplbutton;
 
@@ -4271,10 +4366,52 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
 
       }
     }
-  }
+  } // end of while!
+  
+//  drupal_set_message(serialize($basestr));
+  
+  if($input == 0 && $elementbase) {
+    //$basestr .= $wrapper . $elementbase . '</fieldset>';
+    
 
-  if($input == 0 && $elementbase)
-    $basestr .= $wrapper . $elementbase . '</fieldset>';
+    $node = node_load(arg(1));
+      
+      global $base_url;
+      $title = $node->title;
+      
+      if(!strpos($base_url, $title))
+        $title = wisski_store_getObj()->wisski_ARCAdapter_delNamespace($title);
+
+      $my_parent = $parent_array;
+      $my_parent[] = $grouparr['id'];
+
+//    drupal_set_message(serialize($parent_array));
+//    drupal_set_message(serialize($grouparr['id']));
+//    drupal_set_message(serialize($multiit));
+//    drupal_set_message(serialize($multigroup));      
+      // get the weight of the field at the current position
+      $weightresult = db_query("SELECT weight FROM {wisski_weight} WHERE title = '" . $title . "' AND field_id = '%s' AND value = '%s'", serialize($my_parent), $grouparr['id'] . '_' . $multiit);
+//      drupal_set_message(serialize($title));
+      // is there a weight in the database? or is it in the forms? if not, assume one
+      if($weightrow = db_fetch_array($weightresult)) {
+        $weight = $weightrow['weight'];
+      } else 
+        $weight = $countiter;
+
+//      drupal_set_message(serialize("! am" .$weight));
+      
+      $basearr[$weight] = $wrapper . $elementbase . '</fieldset>';
+      
+//      drupal_set_message(serialize($basearr));
+  }
+  
+    
+  } // end of for - the multigroup-wrapper-generator
+
+  ksort($basearr);
+  
+  foreach($basearr as $weight => $value) {
+    $basestr .= $value;
   }
   
   if($iterator == 0)
