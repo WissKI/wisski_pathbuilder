@@ -579,6 +579,7 @@ function wisski_pathbuilder_duplicate($pathid = 1) {
 //  drupal_set_message(serialize($_POST));
 
   $args = $form['#parameters'];
+  
   $form_id = array_shift($args);
   $form_state['post'] = $form['#post'] = $_POST;
 
@@ -853,8 +854,10 @@ function wisski_pathbuilder_undupl_submit($form, &$form_state) {
   
   
   $counter = 0;
+  $deletedvalue = "";
+  
   foreach($tmpval as $key => $value) {
-    //drupal_set_message("key is: " . serialize($key));
+      //drupal_set_message("key is: " . serialize($key));
 
     if(is_null(preg_match("|(\d+)_|",$key, $matches))) 
       continue;
@@ -879,7 +882,10 @@ function wisski_pathbuilder_undupl_submit($form, &$form_state) {
       } // wenns gleich ist, dann lassen wirs weg. 
       else if($arr[1] == $curid) {
         //drupal_set_message("same!");
-
+        
+        if($count($tmpval) < 5)
+          $newarr[$key] = $value;
+        
         // if there is a path, kill it
         if(!empty($paths[$key]));
           unset($paths[$key]);        
@@ -909,7 +915,10 @@ function wisski_pathbuilder_undupl_submit($form, &$form_state) {
   }
   
   if(empty($newarr))
-    $newarr[$arr[0] . '_' . $arr[1]] = ""; 
+    if(!is_array($deletedvalue))
+      $newarr[$arr[0] . '_' . $arr[1]] = "";
+    else
+      $newarr[$arr[0] . '_0'] = array();
 
   // reserialize it
   $form_state['values']['paths'] = serialize($all_paths);
@@ -1497,6 +1506,7 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
     
     $result = db_query("SELECT * FROM {wisski_template} WHERE group_id = $groupid ORDER BY is_group ASC");
     $triples = array();
+    $groupweight = 0;
     
     if($v != $groupid) {
       $weight = $fs_pointer['weight_' . $v];
@@ -1512,6 +1522,7 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
       
       db_query("DELETE FROM {wisski_weight} WHERE field_id = '%s' AND value = '%s' AND title = '" . $title . "'", serialize($current_parent_array), mysql_real_escape_string($v));
       db_query("INSERT INTO {wisski_weight} (weight, title, field_id, value) VALUES ($weight, '" . $title . "', '%s', '" . mysql_real_escape_string($v) . "')", serialize($current_parent_array));
+      $groupweight = $weight;
     }  
     
     $current_parent_array[] = (string)$v;
@@ -1531,7 +1542,7 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
 //        drupal_set_message("delegate with condition: " . $condition);
         
         //drupal_set_message("delegating into " . $row['id'] . " . with ov_pointer . " . serialize($ov_pointer[$v]));
-        //drupal_set_message("delegating into " . $row['id'] . " . with fs_pointer . " . serialize($fs_pointer[$v]));
+        //drupal_set_message("delegating into " . $row['id'] . " . with $v fs_pointer . " . serialize($fs_pointer[$v]));
         $got_triples = array_merge($got_triples, wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer[$v], $row['id'], $paths[$v]['children'], $condition, $ov_pointer[$v], $op_pointer[$v]['children'], $main_subject, $paths[$v]['path'], $current_parent_array));
         if(empty($main_subject) && empty($condition)) {
           $main_subject = $got_triples[0]['s'];
@@ -1666,6 +1677,10 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
             $weight = $fs[$row['id']]['weight_' . $key];
             $my_parent_array = $current_parent_array;
             $my_parent_array[] = (string)$row['id'];
+
+            // TODO: this is a dirty hack and if there are more than 1000 images it will be a problem ;-)
+            $weight = ($groupweight*1000) + $weight;
+
 //            $my_parent_array[] = (string)$key;
             
 //            drupal_set_message(serialize($fs));
@@ -3523,20 +3538,23 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
             '#delta' => 10,
 //            '#description' => t('Optional. In the menu, the heavier items will sink and the lighter items will be positioned nearer the top.')
           );
-          
-          $tmpVal['wisski_pathbuilder_undupl_button_' . $grouparr['id'] . '_' . $countiter] = array(
-            '#type' => 'image_button',
-            '#src' => 'sites/all/themes/blendedmalts/pics/ico_del.png',
-            '#attributes' => array('class' => 'wki-button-undupl wisski_undupl_single', 
-            'alt' => t('unduplicate group with id ' . $grouparr['id'])),
-             //   '#parents' => $myparents,
-            '#submit' => array('wisski_pathbuilder_undupl_submit'),
-            '#ahah' => array(
-              'event' => 'click',
-              'path' => 'wisski_pathbuilder/duplicate/' . $grouparr['id'], //ahah_helper_path($path_structure),
-              'wrapper' => 'wisski_pathbuilder_ontogroup_wrapper_' . $uuid,
-            ),
-          );
+                    
+          if(!empty($grouparr['deletebutton'])) {
+            $tmpVal['wisski_pathbuilder_undupl_button_' . $grouparr['id'] . '_' . $countiter] = array(
+              '#type' => 'image_button',
+              '#src' => 'sites/all/themes/blendedmalts/pics/ico_del.png',
+              '#attributes' => array('class' => 'wki-button-undupl wisski_undupl_single', 
+              'alt' => t('unduplicate group with id ' . $grouparr['id'])),
+               //   '#parents' => $myparents,
+              '#weight' => $weight,
+              '#submit' => array('wisski_pathbuilder_undupl_submit'),
+              '#ahah' => array(
+                'event' => 'click',
+                'path' => 'wisski_pathbuilder/duplicate/' . $grouparr['id'], //ahah_helper_path($path_structure),
+                'wrapper' => 'wisski_pathbuilder_ontogroup_wrapper_' . $uuid,
+              ),
+            );
+          }
           
           $countiter++;
         }
@@ -3897,19 +3915,21 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
             $tmpbase[$arr['id']][$arr['id']]['#prefix'] = "<div id=\"wisski_pathbuilder_field_wrapper_" . $uuid . "\">";
             $tmpbase[$arr['id']][$arr['id']]['#suffix'] = "</div>";
 
-            $tmpbase[$arr['id']]["button"]['wisski_pathbuilder_cls_button_' . $uuid] = array(
-              '#type' => 'image_button',
-              '#src' => 'sites/all/themes/blendedmalts/pics/ico_cls.png',
-              '#attributes' => array('class' => 'wki-button-undupl wisski_undupl_single', 
-              'alt' => t('Clear path with id ' . $arr['id'])),
-           //   '#parents' => $myparents,
-              '#submit' => array('wisski_pathbuilder_cls_submit'),
-              '#ahah' => array(
-                'event' => 'click',
-                'path' => 'wisski_pathbuilder/duplicate/' . $arr['id'], //ahah_helper_path($path_structure),
-                'wrapper' => 'wisski_pathbuilder_field_wrapper_' . $uuid,
-              ),
-            );
+            if(!empty($arr['clearbutton'])) {
+              $tmpbase[$arr['id']]["button"]['wisski_pathbuilder_cls_button_' . $uuid] = array(
+                '#type' => 'image_button',
+                '#src' => 'sites/all/themes/blendedmalts/pics/ico_cls.png',
+                '#attributes' => array('class' => 'wki-button-undupl wisski_undupl_single', 
+                'alt' => t('Clear path with id ' . $arr['id'])),
+             //   '#parents' => $myparents,
+                '#submit' => array('wisski_pathbuilder_cls_submit'),
+                '#ahah' => array(
+                  'event' => 'click',
+                  'path' => 'wisski_pathbuilder/duplicate/' . $arr['id'], //ahah_helper_path($path_structure),
+                  'wrapper' => 'wisski_pathbuilder_field_wrapper_' . $uuid,
+                ),
+              );
+            }
 
 
           } else if(!$row_information['delete_empty'] && !$row_information['add_button']) {
@@ -3943,19 +3963,21 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
             $tmpbase[$arr['id']][$arr['id']]['#prefix'] = "<div id=\"wisski_pathbuilder_field_wrapper_" . $uuid . "\">";
             $tmpbase[$arr['id']][$arr['id']]['#suffix'] = "</div>";
 
-            $tmpbase[$arr['id']]["button"]['wisski_pathbuilder_cls_button_' . $uuid] = array(
-              '#type' => 'image_button',
-              '#src' => 'sites/all/themes/blendedmalts/pics/ico_cls.png',
-              '#attributes' => array('class' => 'wki-button-undupl wisski_undupl_single', 
-              'alt' => t('Clear path with id ' . $arr['id'])),
-           //   '#parents' => $myparents,
-              '#submit' => array('wisski_pathbuilder_cls_submit'),
-              '#ahah' => array(
-                'event' => 'click',
-                'path' => 'wisski_pathbuilder/duplicate/' . $arr['id'], //ahah_helper_path($path_structure),
-                'wrapper' => 'wisski_pathbuilder_field_wrapper_' . $uuid,
-              ),
-            );
+            if(!empty($arr['clearbutton'])) {
+              $tmpbase[$arr['id']]["button"]['wisski_pathbuilder_cls_button_' . $uuid] = array(
+                '#type' => 'image_button',
+                '#src' => 'sites/all/themes/blendedmalts/pics/ico_cls.png',
+                '#attributes' => array('class' => 'wki-button-undupl wisski_undupl_single', 
+                'alt' => t('Clear path with id ' . $arr['id'])),
+             //   '#parents' => $myparents,
+                '#submit' => array('wisski_pathbuilder_cls_submit'),
+                '#ahah' => array(
+                  'event' => 'click',
+                  'path' => 'wisski_pathbuilder/duplicate/' . $arr['id'], //ahah_helper_path($path_structure),
+                  'wrapper' => 'wisski_pathbuilder_field_wrapper_' . $uuid,
+                ),
+              );
+            }
 
           } else if($row_information['add_button']) {
 
@@ -4067,19 +4089,21 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
 //                '#description' => t('Optional. In the menu, the heavier items will sink and the lighter items will be positioned nearer the top.')
               );
 
-              $tmpVal['wisski_pathbuilder_undupl_button_' . $arr['id'] . '_' . $tmpi] = array(
-                '#type' => 'image_button',
-                '#src' => 'sites/all/themes/blendedmalts/pics/ico_del.png',
-                '#attributes' => array('class' => 'wki-button-undupl wisski_undupl_single', 
-                'alt' => t('unduplicate path with id ' . $arr['id'])),
-             //   '#parents' => $myparents,
-                '#submit' => array('wisski_pathbuilder_undupl_submit'),
-                '#ahah' => array(
-                  'event' => 'click',
-                  'path' => 'wisski_pathbuilder/duplicate/' . $arr['id'], //ahah_helper_path($path_structure),
-                  'wrapper' => 'wisski_pathbuilder_ontotext_wrapper_' . $uuid,
-                ),
-              );
+              if(!empty($arr['deletebutton'])) {
+                $tmpVal['wisski_pathbuilder_undupl_button_' . $arr['id'] . '_' . $tmpi] = array(
+                  '#type' => 'image_button',
+                  '#src' => 'sites/all/themes/blendedmalts/pics/ico_del.png',
+                  '#attributes' => array('class' => 'wki-button-undupl wisski_undupl_single', 
+                  'alt' => t('unduplicate path with id ' . $arr['id'])),
+               //   '#parents' => $myparents,
+                  '#submit' => array('wisski_pathbuilder_undupl_submit'),
+                  '#ahah' => array(
+                    'event' => 'click',
+                    'path' => 'wisski_pathbuilder/duplicate/' . $arr['id'], //ahah_helper_path($path_structure),
+                    'wrapper' => 'wisski_pathbuilder_ontotext_wrapper_' . $uuid,
+                  ),
+                );
+              }
                             
               
 /*
@@ -4116,19 +4140,22 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
               $tmpVal[$arr['id'] . '_' . $tmpi]['#prefix'] = "<div id=\"wisski_pathbuilder_field_wrapper_" . $uuid . "\">";
               $tmpVal[$arr['id'] . '_' . $tmpi]['#suffix'] = "</div>";
 */
-              $tmpVal['wisski_pathbuilder_cls_button_' . $arr['id'] . '_' . $tmpi] = array(
-                '#type' => 'image_button',
-                '#src' => 'sites/all/themes/blendedmalts/pics/ico_cls.png',
-                '#attributes' => array('class' => 'wki-button-undupl wisski_undupl_single', 
-                'alt' => t('Clear path with id ' . $arr['id'] . '_' . $tmpi)),
+
+              if(!empty($arr['clearbutton'])) {
+                $tmpVal['wisski_pathbuilder_cls_button_' . $arr['id'] . '_' . $tmpi] = array(
+                  '#type' => 'image_button',
+                  '#src' => 'sites/all/themes/blendedmalts/pics/ico_cls.png',
+                  '#attributes' => array('class' => 'wki-button-undupl wisski_undupl_single', 
+                  'alt' => t('Clear path with id ' . $arr['id'] . '_' . $tmpi)),
          //   '#parents' => $myparents,
-                '#submit' => array('wisski_pathbuilder_cls_multi_submit'),
-                '#ahah' => array(
-                  'event' => 'click',
-                  'path' => 'wisski_pathbuilder/duplicate/' . $arr['id'], //ahah_helper_path($path_structure),
-                  'wrapper' => 'wisski_pathbuilder_ontotext_wrapper_' . $uuid,
-                ),
-              );
+                  '#submit' => array('wisski_pathbuilder_cls_multi_submit'),
+                  '#ahah' => array(
+                    'event' => 'click',
+                    'path' => 'wisski_pathbuilder/duplicate/' . $arr['id'], //ahah_helper_path($path_structure),
+                    'wrapper' => 'wisski_pathbuilder_ontotext_wrapper_' . $uuid,
+                  ),
+                );
+              }
               
               
               $def[$arr['id'] . '_' . $tmpi] = $tmpVal[$arr['id'] . '_' . $tmpi]['#default_value']; 
@@ -4181,19 +4208,21 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
           $tmpbase[$arr['id']][$arr['id']]['#prefix'] = "<div id=\"wisski_pathbuilder_field_wrapper_" . $uuid . "\">";
           $tmpbase[$arr['id']][$arr['id']]['#suffix'] = "</div>";
 
-          $tmpbase[$arr['id']]["button"]['wisski_pathbuilder_cls_button_' . $uuid] = array(
-            '#type' => 'image_button',
-            '#src' => 'sites/all/themes/blendedmalts/pics/ico_cls.png',
-            '#attributes' => array('class' => 'wki-button-undupl wisski_undupl_single', 
-            'alt' => t('Clear path with id ' . $arr['id'])),
-         //   '#parents' => $myparents,
-            '#submit' => array('wisski_pathbuilder_cls_submit'),
-            '#ahah' => array(
-              'event' => 'click',
-              'path' => 'wisski_pathbuilder/duplicate/' . $arr['id'], //ahah_helper_path($path_structure),
-              'wrapper' => 'wisski_pathbuilder_field_wrapper_' . $uuid,
-            ),
-          );        
+          if(!empty($arr['clearbutton'])) {
+            $tmpbase[$arr['id']]["button"]['wisski_pathbuilder_cls_button_' . $uuid] = array(
+              '#type' => 'image_button',
+              '#src' => 'sites/all/themes/blendedmalts/pics/ico_cls.png',
+              '#attributes' => array('class' => 'wki-button-undupl wisski_undupl_single', 
+              'alt' => t('Clear path with id ' . $arr['id'])),
+              //   '#parents' => $myparents,
+              '#submit' => array('wisski_pathbuilder_cls_submit'),
+              '#ahah' => array(
+                'event' => 'click',
+                'path' => 'wisski_pathbuilder/duplicate/' . $arr['id'], //ahah_helper_path($path_structure),
+                'wrapper' => 'wisski_pathbuilder_field_wrapper_' . $uuid,
+              ),
+            );        
+          }
         }
 
 
@@ -4798,7 +4827,6 @@ function wisski_pathbuilder_edit_item(&$form_state, $type, $item, $menu) {
       '#maxlength' => 2000,  
       );
 
-
   $form['item']['wisski_pathbuilder_edit_path'] = array(
       '#type' => 'markup',
       '#prefix' => '<div id="wisski_pathbuilder_edit_path">',
@@ -4819,6 +4847,25 @@ function wisski_pathbuilder_edit_item(&$form_state, $type, $item, $menu) {
       );
       
   }
+  
+  $form['item']['buttons'] = array('#type' => 'fieldset',
+    '#title' => t('Buttons (if possible):'),
+    '#collapsible' => true,
+  );
+  
+  
+  $form['item']['buttons']['clearbutton'] = array('#type' => 'checkbox',
+        '#title' => t('Display Clearbutton'),
+        '#default_value' => $data['clearbutton'],
+        '#description' => t(''),
+  );
+  
+  
+  $form['item']['buttons']['deletebutton'] = array('#type' => 'checkbox',
+        '#title' => t('Display Deletebutton'),
+        '#default_value' => $data['deletebutton'],
+        '#description' => t(''),
+  );
 
   $types = array();
   if(!($data['type'] % 2))
@@ -5121,9 +5168,9 @@ function wisski_pathbuilder_edit_item_submit($form, &$form_state) {
 
 
   db_query("UPDATE {wisski_template} SET name = '%s', description = '%s', path_array = '%s', " .
-      "short_name = '%s', disamb = %d, datatype_property = '%s', mandatory = %d, fieldtype = '%s', type = %d, displaytype = '%s', fieldsize = %d WHERE id = %d", 
+      "short_name = '%s', disamb = %d, datatype_property = '%s', mandatory = %d, fieldtype = '%s', type = %d, displaytype = '%s', fieldsize = %d, clearbutton = %d, deletebutton = %d WHERE id = %d", 
       $item['name'], $item['description'], serialize($path), $item['short_name'], $item['disamb'], 
-      $datatypeproperty, $item['mandatory'], $item['fieldtype'], $type, $item['displaytype'], $item['fieldsize'], $id);
+      $datatypeproperty, $item['mandatory'], $item['fieldtype'], $type, $item['displaytype'], $item['fieldsize'], $item['buttons']['clearbutton'], $item['buttons']['deletebutton'], $id);
 
   $sn = db_fetch_array($result);
   

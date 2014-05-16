@@ -217,7 +217,21 @@ function wisski_pathbuilder_schema() {
         'not null' => TRUE,
         'default' => 60,
         'description' => 'the size of the field.',
-      ),      
+      ),
+
+      'clearbutton' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'should the clearbutton be available?',
+      ),
+
+      'deletebutton' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'should the deduplicate be available?',
+      ),
 
 		),
     'primary key' => array('id'),
