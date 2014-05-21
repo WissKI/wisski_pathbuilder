@@ -1432,19 +1432,19 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
   }
   
   // iterate over the old values and delete deleted groups
-  
-  foreach($op_pointer as $v => $oldpath) {
+  if(!empty($op_pointer)) {  
+    foreach($op_pointer as $v => $oldpath) {
+      
+      $path_to_analyze = $oldpath['path'];
+      $found = false;
     
-    $path_to_analyze = $oldpath['path'];
-    $found = false;
-    
-    foreach($paths as $p => $path) {
-      if($path['path'] == $path_to_analyze) {
-        $found = true;
+      foreach($paths as $p => $path) {
+        if($path['path'] == $path_to_analyze) {
+          $found = true;
+        }
       }
-    }
     
-    if(!$found) {
+      if(!$found) {
       //drupal_set_message("I have to delete $v!");
     
       //drupal_set_message(serialize($v) . " is: " . serialize($oldpath));
@@ -1452,17 +1452,17 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
       //drupal_set_message("paths: " . serialize($paths[$v]));
       //drupal_set_message("op: " . serialize($op_pointer[$v]));
       
-      if(!empty($path_to_analyze)) {
-        $length = floor(count($path_to_analyze)/2);
-        if($length >= 1) {
-          $delete = "DELETE { <" . $path_to_analyze['x' . ($length-1)] . "> <" . $path_to_analyze['y' . ($length-1)] . "> <" . $path_to_analyze['x' . $length] . "> }";
+        if(!empty($path_to_analyze)) {
+          $length = floor(count($path_to_analyze)/2);
+          if($length >= 1) {
+            $delete = "DELETE { <" . $path_to_analyze['x' . ($length-1)] . "> <" . $path_to_analyze['y' . ($length-1)] . "> <" . $path_to_analyze['x' . $length] . "> }";
           
-          wisski_store_getObj()->wisski_ARCAdapter_getStore()->query($delete);
+            wisski_store_getObj()->wisski_ARCAdapter_getStore()->query($delete);
           
           //drupal_set_message(htmlentities($delete));
+          }
         }
       }
-    }
       
       /*    
       if($row['disamb'] > 0) 
@@ -1483,7 +1483,7 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
     */
     
     
-  
+    }
   }
   
   
