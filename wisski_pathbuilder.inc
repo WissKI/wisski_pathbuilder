@@ -654,38 +654,43 @@ function wisski_pathbuilder_duplicate($pathid = 1) {
 
 function wisski_pathbuilder_filter_auth_data($array) {
   $newarray = array();
-  foreach($array as $key => $value)
-    if(strpos($key, 'auth_data') === FALSE)
-      $newarray[$key] = $value;
+  if(!empty($array))
+    foreach($array as $key => $value)
+      if(strpos($key, 'auth_data') === FALSE)
+        $newarray[$key] = $value;
+  
   return $newarray;
 }
 
 function wisski_pathbuilder_filter_weight_data($array) {
   $newarray = array();
-  foreach($array as $key => $value) {
-    if(strpos($key, 'weight_') === FALSE)
-      $newarray[$key] = $value;
-  }
+  if(!empty($array))
+    foreach($array as $key => $value) {
+      if(strpos($key, 'weight_') === FALSE)
+        $newarray[$key] = $value;
+    }
   
   return $newarray;
 }
 
 function wisski_pathbuilder_filter_undupl_button_data($array) {
   $newarray = array();
-  foreach($array as $key => $value) {
-    if(strpos($key, 'wisski_pathbuilder_undupl_button_') === FALSE)
-      $newarray[$key] = $value;
-  }
+  if(!empty($array))
+    foreach($array as $key => $value) {
+      if(strpos($key, 'wisski_pathbuilder_undupl_button_') === FALSE)
+        $newarray[$key] = $value;
+    }
   
   return $newarray;
 }
 
 function wisski_pathbuilder_filter_cls_button_data($array) {
   $newarray = array();
-  foreach($array as $key => $value) {
-    if(strpos($key, 'button') === FALSE)
-      $newarray[$key] = $value;
-  }
+  if(!empty($array))
+    foreach($array as $key => $value) {
+      if(strpos($key, 'button') === FALSE)
+        $newarray[$key] = $value;
+    }
   
   return $newarray;
 }
