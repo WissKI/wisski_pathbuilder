@@ -759,6 +759,21 @@ function wisski_pathbuilder_nodeapi(&$node, $op) {
 	  if($node->content['body'] != "")
 		  unset($node->content['ARC']);  
   }
+
+  if($op == "presave") {
+    if(empty($node->title) && !empty($node->node->title)) {
+      $node->title = $node->node->title;
+    }
+  }
+  
+  if($op == "update" || $op == "insert") {
+    if($node->type == "individual") {
+      wisski_pathbuilder_book_store($node);
+
+    }
+
+  } 
+  
 }
 
 function wisski_pathbuilder_block($op = 'list', $delta = 0, $edit = array()) {
@@ -1049,4 +1064,18 @@ function wisski_pathbuilder_rescue_values($form, &$form_state) {
     $form_state['wisskiValues']['old_paths'] = $form_state['values']['paths'];
   }
   //drupal_set_message(serialize($form_state['wisskiValues']));
+}
+
+function wisski_pathbuilder_book_store(&$node) {
+
+  $book_node = $node;
+  module_load_include('inc', 'wisski_pathbuilder');
+  $inst = wisski_store_getObj()->wisski_ARCAdapter_delNamespace($node->title);
+  if (!$inst) return;
+  $gid = wisski_pathbuilder_getGroupIDForIndividual($inst);
+  if ($gid == -1) return;
+  $book_node->title = wisski_pathbuilder_generateGroupName($inst, $gid);
+
+  _book_update_outline($book_node);
+        
 }
