@@ -4430,7 +4430,11 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
       if($weightrow = db_fetch_array($weightresult)) {
         $weight = $weightrow['weight'];
       } else 
-        $weight = $countiter;
+        $weight = $multiit;
+
+      // fallback
+      if(!empty($basearr[$weight]))
+        $weight = count($basearr);
 
 //      drupal_set_message(serialize("! am" .$weight));
       
