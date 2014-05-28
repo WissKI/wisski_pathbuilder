@@ -888,8 +888,8 @@ function wisski_pathbuilder_undupl_submit($form, &$form_state) {
       else if($arr[1] == $curid) {
         //drupal_set_message("same!");
         
-        if($count($tmpval) < 5)
-          $newarr[$key] = $value;
+//        if($count($tmpval) < 5)
+//        $newarr[$key] = $value;
         
         // if there is a path, kill it
         if(!empty($paths[$key]));
@@ -1524,8 +1524,9 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
       
       if(!strpos($base_url, $title))
          $title = wisski_store_getObj()->wisski_ARCAdapter_delNamespace($title);
-      
-      db_query("DELETE FROM {wisski_weight} WHERE field_id = '%s' AND value = '%s' AND title = '" . $title . "'", serialize($current_parent_array), mysql_real_escape_string($v));
+      // save variant, but does not work by now
+      //db_query("DELETE FROM {wisski_weight} WHERE field_id = '%s' AND value = '%s' AND title = '" . $title . "'", serialize($current_parent_array), mysql_real_escape_string($v));
+      db_query("DELETE FROM {wisski_weight} WHERE value = '%s' AND title = '" . $title . "'", mysql_real_escape_string($v));
       db_query("INSERT INTO {wisski_weight} (weight, title, field_id, value) VALUES ($weight, '" . $title . "', '%s', '" . mysql_real_escape_string($v) . "')", serialize($current_parent_array));
       $groupweight = $weight;
     }  

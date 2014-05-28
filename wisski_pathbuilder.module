@@ -755,6 +755,9 @@ function wisski_pathbuilder_overview_title($menu) {
  * Implementation of hook_nodeapi().
  */
 function wisski_pathbuilder_nodeapi(&$node, $op) {
+  if($node->type != "individual")
+    return;
+    
   if($op == "view") {
 	  if($node->content['body'] != "")
 		  unset($node->content['ARC']);  
@@ -768,7 +771,8 @@ function wisski_pathbuilder_nodeapi(&$node, $op) {
   
   if($op == "update" || $op == "insert") {
     if($node->type == "individual") {
-      wisski_pathbuilder_book_store($node);
+      if(module_exists("book"))
+        wisski_pathbuilder_book_store($node);
 
     }
 
