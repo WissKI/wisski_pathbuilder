@@ -1522,7 +1522,7 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
       if(empty($title))
         $title = $main_subject;
       
-      if(!strpos($base_url, $title))
+      if(strpos($title, $base_url) === FALSE)
          $title = wisski_store_getObj()->wisski_ARCAdapter_delNamespace($title);
       // save variant, but does not work by now
       //db_query("DELETE FROM {wisski_weight} WHERE field_id = '%s' AND value = '%s' AND title = '" . $title . "'", serialize($current_parent_array), mysql_real_escape_string($v));
@@ -1693,7 +1693,7 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
 //            drupal_set_message(serialize($my_parent_array));
             global $base_url;
             $title = $node->title;
-            if(!strpos($base_url, $title))
+            if(strpos($title, $base_url) === FALSE)
               $title = wisski_store_getObj()->wisski_ARCAdapter_delNamespace($title);
 
             db_query("DELETE FROM {wisski_weight} WHERE field_id = '%s' AND value = '%s' AND title = '" . $title . "'", serialize($my_parent_array), mysql_real_escape_string($value));
@@ -1912,7 +1912,7 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
 
               global $base_url;
               $title = $main_subject;
-              if(!strpos($base_url, $title))
+              if(strpos($title, $base_url) === FALSE)
                 $title = wisski_store_getObj()->wisski_ARCAdapter_delNamespace($title);
 
               db_query("DELETE FROM {wisski_weight} WHERE field_id = '%s' AND value = '%s' AND title = '" . $title . "'", serialize($my_parent_array), mysql_real_escape_string($value));
@@ -3517,7 +3517,7 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
           global $base_url;
           $title = $node->title;
       
-          if(!strpos($base_url, $title))
+          if(strpos($title, $base_url) === FALSE)
             $title = wisski_store_getObj()->wisski_ARCAdapter_delNamespace($title);
                     
           // get the weight of the field at the current position
@@ -3751,7 +3751,7 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
               global $base_url;
               
               // is the title correct?
-              if(strpos($base_url, $title) === FALSE)
+              if(strpos($title, $base_url) === FALSE)
                 $title = wisski_store_getObj()->wisski_ARCAdapter_delNamespace($title);
               
               // get the weight of the field at the current position
@@ -4067,7 +4067,7 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
               global $base_url;
               
               // is the title correct?
-              if(strpos($base_url, $title) === FALSE)
+              if(strpos($title, $base_url) === FALSE)
                 $title = wisski_store_getObj()->wisski_ARCAdapter_delNamespace($title);
               
               // get the weight of the field at the current position
@@ -4319,7 +4319,7 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
               
               global $base_url;
                             
-              if(!strpos($base_url, $title))
+              if(strpos($title, $base_url) === FALSE)
                 $title = wisski_store_getObj()->wisski_ARCAdapter_delNamespace($title);
               
               // get the weight
@@ -4414,7 +4414,7 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
       global $base_url;
       $title = $node->title;
       
-      if(!strpos($base_url, $title))
+      if(strpos($title, $base_url) === FALSE)
         $title = wisski_store_getObj()->wisski_ARCAdapter_delNamespace($title);
 
       $my_parent = $parent_array;
@@ -5121,7 +5121,7 @@ function _wisski_pathbuilder_generateGroupName($title, $groupid, $data = NULL) {
 function wisski_pathbuilder_generateGroupName($title, $groupid, $data = NULL) {
   global $base_url;
   $oldtitle = $title;
-  if(!strpos($base_url, $title))
+  if(strpos($title, $base_url) === FALSE) 
     $title = wisski_store_getObj()->wisski_ARCAdapter_delNamespace($title);
 
   $result = db_query("SELECT title FROM {wisski_title_cache} WHERE uri = '" . $title . "'");
