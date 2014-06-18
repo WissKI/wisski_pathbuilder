@@ -1406,6 +1406,17 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
   // by Martin: potential subject URI for auth handling when auth term at x0
   $pot_main_subject = NULL;
   if (!$main_subject) $pot_main_subject = wisski_store_getObj()->wisski_ARCAdapter_delNamespace(wisski_store_getObj()->wisski_Store_getNewUniqueID());
+      
+  if($my_group['disamb'] != 0 && empty($main_subject)) {
+    $disambid = $my_group['disamb'];
+    $disambvalue = $fs_pointer[$groupid][$groupid][$disambid][$disambid];
+    $sparql = wisski_pathbuilder_get_sparql($my_group['disamb'], 'FILTER ( ?out = "' . wisski_store_escape_sparql_literal($disambvalue) . '" ) ', FALSE);
+
+    $matches = wisski_store_getObj()->wisski_ARCAdapter_getStore()->query($sparql, 'rows');
+    
+    $main_subject = $matches[0]['x0'];
+//    drupal_set_message(serialize($matches));
+  }
   
   $got_triples = array();
   
@@ -2959,6 +2970,13 @@ function wisski_pathbuilder_build_group_submit($form, &$form_state) {
   }
 */
 
+  $result = db_query("SELECT * FROM {wisski_template} WHERE id = $groupid");
+  $my_group = db_fetch_array($result);
+  
+//  if($my_group['disamb'] != 0) {
+//    drupal_set_message(serialize($my_group));
+//  }
+
 //  drupal_set_message(serialize($form_state));
 
   $paths = array();
@@ -2978,6 +2996,10 @@ function wisski_pathbuilder_build_group_submit($form, &$form_state) {
     $form_state['values']['title'] = wisski_store_getObj()->wisski_ARCAdapter_addNamespace($main_subj_out);
   }
   $form_state['values']['type'] = "individual";
+
+  if($my_group['disamb'] != 0) {
+    return FALSE;
+  }
 }
 
 function _wisski_pathbuilder_calculate_group_samepart($groupid) {
