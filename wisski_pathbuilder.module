@@ -978,41 +978,47 @@ function wisski_pathbuilder_pb_fieldinformation($fieldtype) {
    * delete_empty - true or false, check if the empty values (0, "", null) should be considered as nothing or should be stored into the TS
    * add_button   - true or false, check if a multiply-button should be displayed - yes here and edit_type single does not make sense!
    * display_type - the fapi form field which should be used to display this field
+   * additional_options - an array of additional options which should be set for this element
    */
   
   if($fieldtype == "checkboxes") {
     return array("edit_type"    => "multiple",
                  "delete_empty" => true,
                  "add_button"   => false,
-                 "display_type" => "checkboxes");
+                 "display_type" => "checkboxes",
+                 "additional_options" => array());
   }
   
   if($fieldtype == "select") {
     return array("edit_type"    => "multiple",
                  "delete_empty" => true,
                  "add_button"   => false,
-                 "display_type" => "select");
+                 "display_type" => "select",
+                 "additional_options" => array());
   }
   
   if($fieldtype == "radios") {
     return array("edit_type"    => "multiple",
                  "delete_empty" => false,
                  "add_button"   => false,
-                 "display_type" => "radios");
+                 "display_type" => "radios",
+                 "additional_options" => array());
   }  
   
   if($fieldtype == "coordinates") {
     return array("edit_type"    => "multiple",
                  "delete_empty" => false,
                  "add_button"   => true,
-                 "display_type" => "textfield");
+                 "display_type" => "textfield",
+                 "additional_options" => array());
   }
   
   if($fieldtype == "ontotext") {
     return array("edit_type"    => "multiple",
                  "delete_empty" => false,
                  "add_button"   => true,
-                 "display_type" => "textfield");
+                 "display_type" => "textfield",
+                 "additional_options" => array());
   }
   
   if($fieldtype == "textfield" || $fieldtype == "textarea") {
@@ -1020,7 +1026,8 @@ function wisski_pathbuilder_pb_fieldinformation($fieldtype) {
     return array("edit_type"    => "single",
                  "delete_empty" => false,
                  "add_button"   => false,
-                 "display_type" => $fieldtype);  
+                 "display_type" => $fieldtype,
+                 "additional_options" => array());  
   }
 }
 
@@ -1049,6 +1056,12 @@ function wisski_pathbuilder_pb_changesettings($fieldtype, $id, $preset) {
   } else {
     $my_preset['#autocomplete_path'] = ('wisski_pathbuilder/autocomplete/' . $id);
     $my_preset['#maxlength'] = 2000;
+  }
+
+  if(!empty($row_information['additional_options']) && is_array($row_information['additional_options']) ) {
+    foreach($row_information['additional_options'] as $key => $value) {
+      $my_preset[$key] = $value;
+    }
   }
 
   return $my_preset;
