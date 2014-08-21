@@ -100,7 +100,7 @@ function wisski_pathbuilder_getInternaGroups() {
  */
 function wisski_pathbuilder_getEnabledGroups($type = 1) {
   
-  $result = db_query("SELECT * FROM {wisski_template} WHERE is_group = 1 AND enabled = 1"); 
+  $result = db_query("SELECT * FROM {wisski_template} WHERE is_group = 1 AND enabled = 1 ORDER BY group_id, weight"); 
   $groupids = array();
   
   while($arr = db_fetch_array($result)) {
@@ -1052,8 +1052,8 @@ function wisski_pathbuilder_getGroupIDForConcept($type, $use_type = 1) {
 
 
   // if the user has a favorite type get that type and return it.
-  if($var && isset($var) && $var[$user->uid] && isset($var[$user->uid]) && $var[$user->uid][$type] && in_array($var[$user->uid][$type], $groups))
-    return $var[$user->uid][$type];
+#  if($var && isset($var) && $var[$user->uid] && isset($var[$user->uid]) && $var[$user->uid][$type] && in_array($var[$user->uid][$type], $groups))
+#    return $var[$user->uid][$type];
 
   // oh... no group was defined till now... take the first one found.
   foreach($groups as $group) {
