@@ -1706,8 +1706,10 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
             $title = $node->title;
             if(strpos($title, $base_url) === FALSE)
               $title = wisski_store_getObj()->wisski_ARCAdapter_delNamespace($title);
-
-            db_query("DELETE FROM {wisski_weight} WHERE field_id = '%s' AND value = '%s' AND title = '" . $title . "'", serialize($my_parent_array), mysql_real_escape_string($value));
+// old variant
+//            db_query("DELETE FROM {wisski_weight} WHERE field_id = '%s' AND value = '%s' AND title = '" . $title . "'", serialize($my_parent_array), mysql_real_escape_string($value));
+// delete all instead of only the old ones! They are added later on anyway...
+            db_query("DELETE FROM {wisski_weight} WHERE field_id = '%s' AND title = '%s'", serialize($my_parent_array), $title);
             if(!drupal_validate_utf8($value))
               $value = utf8_encode($value);
             db_query("INSERT INTO {wisski_weight} (weight, title, field_id, value) VALUES ($weight, '" . $title . "', '%s', '" . mysql_real_escape_string($value) . "')", serialize($my_parent_array));
