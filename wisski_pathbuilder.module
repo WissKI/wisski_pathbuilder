@@ -1050,6 +1050,7 @@ function wisski_pathbuilder_pb_changesettings($fieldtype, $id, $preset) {
 
     } else {
       //$my_preset['#type'] = "textfield";    
+      
       $my_preset['#autocomplete_path'] = ('wisski_pathbuilder/autocomplete/' . $id);
       $my_preset['#maxlength'] = 2000;
     }

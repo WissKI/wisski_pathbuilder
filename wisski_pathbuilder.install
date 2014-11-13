@@ -197,6 +197,20 @@ function wisski_pathbuilder_schema() {
         'default' => 0,
         'description' => 'repeatable means that this property may be filled several times.',
       ),
+
+      'autocomplete' => array(
+	'type' => 'int',
+	'not null' => TRUE,
+	'defeault' => 1,
+	'description' => 'activate/deactivate autocomplete, default is active',
+      ),
+
+      'collapsed' => array(
+	'type' => 'int',
+	'not null' => TRUE,
+	'defeault' => 0,
+	'description' => 'Is this group collapsed by default?',
+      ),
       
       'type' => array(
         'type' => 'int',

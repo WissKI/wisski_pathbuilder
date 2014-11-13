@@ -4509,6 +4509,11 @@ function _wisski_pathbuilder_get_field($arr) {
 
   $out = module_invoke_all("pb_changesettings", $arr['fieldtype'], $arr['id'], $out);
 
+  if(empty($arr['autocomplete'])) {
+    unset($out['#autocomplete_path']);
+    $out['#attributes']['autocomplete'] = 'off';
+  }
+
   return $out;
 }
 
@@ -4844,6 +4849,12 @@ function wisski_pathbuilder_edit_item(&$form_state, $type, $item, $menu) {
         '#default_value' => $data['short_name'],
         '#description' => t(''),
         );
+    $form['item']['collapsed'] = array('#type' => 'checkbox',
+        '#title' => t('Collapsed'),
+        '#default_value' => $data['collapsed'],
+        '#description' => t(''),
+        );
+    
   }
 
   if($data['is_group'] == 0) {
@@ -4852,6 +4863,12 @@ function wisski_pathbuilder_edit_item(&$form_state, $type, $item, $menu) {
         '#default_value' => $data['mandatory'],
         '#description' => t(''),
         );
+    $form['item']['autocomplete'] = array('#type' => 'checkbox',
+        '#title' => t('Autocomplete'),
+        '#default_value' => $data['autocomplete'],
+        '#description' => t(''),
+        );
+    
   }
   
   $form['item']['description'] = array('#type' => 'textfield',
@@ -5202,9 +5219,9 @@ function wisski_pathbuilder_edit_item_submit($form, &$form_state) {
 
 
   db_query("UPDATE {wisski_template} SET name = '%s', description = '%s', path_array = '%s', " .
-      "short_name = '%s', disamb = %d, datatype_property = '%s', mandatory = %d, fieldtype = '%s', type = %d, displaytype = '%s', fieldsize = %d, clearbutton = %d, deletebutton = %d WHERE id = %d", 
+      "short_name = '%s', disamb = %d, datatype_property = '%s', mandatory = %d, autocomplete = %d, collapsed = %d, fieldtype = '%s', type = %d, displaytype = '%s', fieldsize = %d, clearbutton = %d, deletebutton = %d WHERE id = %d", 
       $item['name'], $item['description'], serialize($path), $item['short_name'], $item['disamb'], 
-      $datatypeproperty, $item['mandatory'], $item['fieldtype'], $type, $item['displaytype'], $item['fieldsize'], $item['buttons']['clearbutton'], $item['buttons']['deletebutton'], $id);
+      $datatypeproperty, $item['mandatory'], $item['autocomplete'], $item['collapsed'], $item['fieldtype'], $type, $item['displaytype'], $item['fieldsize'], $item['buttons']['clearbutton'], $item['buttons']['deletebutton'], $id);
 
   $sn = db_fetch_array($result);
   
