@@ -3391,6 +3391,7 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
     } else { // edit, add, ...
     
       if($grouparr['fieldtype'] != "ontogroup") {
+                
         $form['form'][$grouparr['id']] = array(
           '#collapsed' => FALSE,
           '#type' => 'fieldset',
@@ -3399,6 +3400,13 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
           '#title' => t($grouparr['name']),
           '#tree' => TRUE,
         );
+        
+        // collapse if wanted
+        if(!empty($grouparr['collapsed']))
+          if($input != 1)
+            $form['form'][$grouparr['id']]['#collapsed'] = TRUE;
+          
+        
         $base = &$form['form'][$grouparr['id']];
         $form_state = $form_state[$grouparr['id']];
         $parent_array[] = (string)$grouparr['id'];
@@ -3409,6 +3417,11 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
           $q = wisski_pathbuilder_get_sparql($grouparr['id'], $sparqlcondition, FALSE, 0, TRUE);
           $out = wisski_store_getObj()->wisski_ARCAdapter_getStore()->query($q);
           $results = $out['result']['rows'];
+          
+          // If there is data, don't collapse!
+          if(!empty($results)) {
+            $form['form'][$grouparr['id']]['#collapsed'] = FALSE;
+          }
 
           $grp_val = false;
           if(!empty($results))
@@ -3526,6 +3539,7 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
             $paths[$grouparr['id'] . "_" . $countiter]['path'] = $a_group;
 //            $paths = &$paths[$grouparr['id'] . "_" . $countiter]['children'];
           }
+          
                     
           $tmpVal[$grouparr['id'] . "_" . $countiter] = array(
             '#collapsed' => FALSE,
@@ -3535,6 +3549,15 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
             '#title' => t($grouparr['name']),
             '#tree' => TRUE,
           );
+          
+          // if it should be collapsed, collapse it!
+          if(!empty($grouparr['collapsed'])) 
+            $tmpVal[$grouparr['id'] . "_" . $countiter]['#collapsed'] = TRUE;
+          
+          // however it shouldn't collapse if we are in create dialogue or if there is data!
+          if(!empty($results) || $input == 1) {
+            $tmpVal[$grouparr['id'] . "_" . $countiter]['#collapsed'] = FALSE;
+          }
           
           $node = node_load(arg(1));
           
