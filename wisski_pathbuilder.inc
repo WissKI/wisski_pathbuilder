@@ -1691,7 +1691,10 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
 
           // save the weight
           if(!empty($node->title) && is_array($fs[$row['id']]) && isset($fs[$row['id']]['weight_' . $key])) {
-            $weight = $fs[$row['id']]['weight_' . $key];
+            if(empty($fs[$row['id']]['weight_' . $key]))
+              $weight = 1;
+            else
+              $weight = $fs[$row['id']]['weight_' . $key];
             $my_parent_array = $current_parent_array;
             $my_parent_array[] = (string)$row['id'];
 
