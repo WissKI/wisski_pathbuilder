@@ -5074,22 +5074,25 @@ function _wisski_pathbuilder_generateGroupName($title, $groupid, $data = NULL) {
 
 function wisski_pathbuilder_generateGroupName($title, $groupid, $data = NULL) {
   global $base_url;
-  $oldtitle = $title;
+
   if(strpos($title, $base_url) === FALSE) 
     $title = wisski_store_getObj()->wisski_ARCAdapter_delNamespace($title);
+
+  // so there is a full url in oldtitle now
+  $oldtitle = $title;
 
   $result = db_query("SELECT title FROM {wisski_title_cache} WHERE uri = '" . $title . "'");
   
   $title_from_db = db_fetch_array($result);
   
-  if(empty($title_from_db) || empty($title_from_db['title']) || $title_from_db['title'] == $oldtitle) {
+  if(empty($title_from_db) || empty($title_from_db['title']) || strpos($oldtitle, $title_from_db['title']) !== FALSE) {
     $out = _wisski_pathbuilder_generateGroupName(wisski_store_getObj()->wisski_ARCAdapter_addNamespace($title), $groupid, $data);
 
     if($out == $oldtitle)
       return check_plain($out);
     
     // fallback, if there is now a better title, write this to the database!
-    if(!empty($title_from_db) && (empty($title_from_db['title']) || $title_from_db['title'] == $oldtitle))
+    if(!empty($title_from_db) && (empty($title_from_db['title']) || strpos($oldtitle, $title_from_db['title']) !== FALSE))
       db_query("UPDATE {wisski_title_cache} SET title = '" . mysql_real_escape_string($out) . "' WHERE uri = '" . mysql_real_escape_string($title) . "'");
     else
       db_query("INSERT INTO {wisski_title_cache} VALUES ('" . mysql_real_escape_string($title) . "', '" . mysql_real_escape_string($out) . "')");
