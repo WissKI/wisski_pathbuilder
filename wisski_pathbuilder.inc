@@ -4300,8 +4300,17 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
        
           $elements = "";
           $result = check_plain($result);
-          $result = check_markup($result, 1);
-          $result = preg_replace('/\<p\>(.*)\<\/p\>/s', '$1', $result);
+          $newresult = check_markup($result, 1);
+          $newresult = preg_replace('/\<p\>(.*)\<\/p\>/s', '$1', trim($newresult));
+          
+          // check if it is an url
+          if($newresult !== $result) {
+            // change all spaces in urls to %20
+            $result = str_replace(" ", "%20", $result);
+            // recheck
+            $result = check_markup($result, 1);
+            $result = preg_replace('/\<p\>(.*)\<\/p\>/s', '$1', $result);
+          }
           
           if($arr['disamb'] > 0) {
             if($resultarr[('x' . ($arr['disamb']-1))]) {
