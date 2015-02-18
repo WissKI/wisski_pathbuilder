@@ -4304,7 +4304,7 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
           $newresult = preg_replace('/\<p\>(.*)\<\/p\>/s', '$1', trim($newresult));
           
           // check if it is an url
-          if($newresult !== $result) {
+          if(trim($newresult) !== trim($result)) {
             // change all spaces in urls to %20
             $result = str_replace(" ", "%20", $result);
             // recheck
