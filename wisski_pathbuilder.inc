@@ -1398,7 +1398,7 @@ function wisski_pathbuilder_template_edit_submit($form, &$form_state) {
 }
 
 function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, $paths, $condition, $ov_pointer, $op_pointer, $main_subject = "", $parentpath = NULL, $parent_array = array(), &$main_subj_out = '') {
-  
+
   // if the group is a multi-group then the position in the array might not be correct anymore
   $path_mapping = array();
 
@@ -1531,6 +1531,15 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
     
     $current_parent_array[] = (string)$v;
 
+    $groupcondition = "";
+    // d.h. die Gruppe gabs schon
+    if(!empty($paths[$v]['path'])) {
+      $data = $paths[$v]['path'];
+     
+      $groupcondition = ('. FILTER ( ?x' . floor(count($data)/2) . ' = <' . $data['x' . floor(count($data)/2)] . '> ) ');
+     
+    }
+
     // go through all fields
     while($row = db_fetch_array($result)) {
       $fs = $storefs;
@@ -1543,6 +1552,7 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
 
       // it is a true group
       if($row['is_group'] == 1) {
+        
         $got_triples = array_merge($got_triples, wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer[$v], $row['id'], $paths[$v]['children'], $condition, $ov_pointer[$v], $op_pointer[$v]['children'], $main_subject, $paths[$v]['path'], $current_parent_array));
         if(empty($main_subject) && empty($condition)) {
           $main_subject = $got_triples[0]['s'];
@@ -1587,6 +1597,7 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
 
       // Delete the old ones
         foreach($old_values as $key => $value) {
+            
           // hack for select field which return an array with wrong indexes
           if(is_array($value)) {
 //            drupal_set_message("danger zone!");
@@ -1610,8 +1621,8 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
               if(!drupal_validate_utf8($local_value))
                 $local_value = utf8_encode($local_value);
 
-              $delete .= $condition . '. FILTER ( ?out = "' . wisski_store_escape_sparql_literal($local_value) . '" ) }';
-              
+              $delete .= $condition . $groupcondition . '. FILTER ( ?out = "' . wisski_store_escape_sparql_literal($local_value) . '" ) }';
+                            
               wisski_store_getObj()->wisski_ARCAdapter_getStore()->query($delete);
             }
           // normal handling
@@ -1642,9 +1653,8 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
             if(!drupal_validate_utf8($value))
               $value = utf8_encode($value);
 
-            $delete .= $condition . '. FILTER ( ?out = "' . wisski_store_escape_sparql_literal($value) . '" ) }';
-
-
+            $delete .= $condition . $groupcondition . '. FILTER ( ?out = "' . wisski_store_escape_sparql_literal($value) . '" ) }';
+            
             wisski_store_getObj()->wisski_ARCAdapter_getStore()->query($delete);
           }
         }
