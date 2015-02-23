@@ -964,7 +964,7 @@ function wisski_pathbuilder_form_individual_node_form_alter(&$form, &$form_state
 function wisski_pathbuilder_pb_fieldtypes() {
   return array("textfield" => "textfield", "textarea" => "textarea", 
         "checkboxes" => "checkboxes", "select" => "select", "radios" => "radios", 
-        "ontotext" => "ontotext", "description" => "description", "coordinates" => "coordinates");
+        "ontotext" => "ontotext", "description" => "description", "coordinates" => "coordinates", "dropdown" => "dropdown");
 }
 
 /* This Function implements hook_pb_fieldtypes
@@ -995,6 +995,17 @@ function wisski_pathbuilder_pb_fieldinformation($fieldtype) {
                  "add_button"   => false,
                  "display_type" => "select",
                  "additional_options" => array());
+  }
+  
+  if($fieldtype == "dropdown") {
+    return array("edit_type"    => "multiple",
+                 "delete_empty" => true,
+                 "add_button"   => false,
+                 "display_type" => "select",
+                 "additional_options" => array(
+                   "#multiple" => 0,
+                   "#size" => 1,
+                 ));
   }
   
   if($fieldtype == "radios") {
