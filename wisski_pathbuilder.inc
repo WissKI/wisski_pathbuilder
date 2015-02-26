@@ -1645,7 +1645,19 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
               $delete = ("DELETE { " . $sparql['triples'][1+(($row['disamb'] - 2) * 2) ] . " . } WHERE { ");
             else
               $delete = ("DELETE { " . $sparql['triples'][count($data)] . " . } WHERE { ");
-                      
+
+            // do a dirty hack to get deletes for both directions
+            // the trick is to make from { { ... } UNION { ... } }
+            // only ... . ...
+            if(strpos($delete, "UNION") !== FALSE) {
+              // first kill {{
+              $delete = str_replace("{ { ", "", $delete);
+              // then replace UNION with .
+              $delete = str_replace("} UNION {", ".", $delete);
+              // kill }}
+              $delete = str_replace(" } }", "", $delete);
+            }
+                           
             foreach($sparql['triples'] as $triple) {
               $delete .= ($triple .  " . ");
             }
