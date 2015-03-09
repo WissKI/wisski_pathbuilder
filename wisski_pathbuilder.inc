@@ -1620,9 +1620,12 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
                     
               if(!drupal_validate_utf8($local_value))
                 $local_value = utf8_encode($local_value);
-
-              $delete .= $condition . $groupcondition . '. FILTER ( ?out = "' . wisski_store_escape_sparql_literal($local_value) . '" ) }';
-                            
+              
+              if(!is_numeric($value))
+                $delete .= $condition . $groupcondition . '. FILTER ( ?out = "' . wisski_store_escape_sparql_literal($local_value) . '" ) }';
+              else
+                $delete .= $condition . '. FILTER ( ?out = ' . wisski_store_escape_sparql_literal($local_value) . ' ) }';
+                                        
               wisski_store_getObj()->wisski_ARCAdapter_getStore()->query($delete);
             }
           // normal handling
@@ -1665,8 +1668,11 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
             if(!drupal_validate_utf8($value))
               $value = utf8_encode($value);
 
-            $delete .= $condition . $groupcondition . '. FILTER ( ?out = "' . wisski_store_escape_sparql_literal($value) . '" ) }';
-            
+            if(!is_numeric($value))
+              $delete .= $condition . $groupcondition . '. FILTER ( ?out = "' . wisski_store_escape_sparql_literal($value) . '" ) }';
+            else
+              $delete .= $condition . '. FILTER ( ?out = ' . wisski_store_escape_sparql_literal($value) . ' ) }';
+                          
             wisski_store_getObj()->wisski_ARCAdapter_getStore()->query($delete);
           }
         }
