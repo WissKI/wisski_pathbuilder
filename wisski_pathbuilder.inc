@@ -575,8 +575,11 @@ function wisski_pathbuilder_duplicate($pathid = 1) {
   $form_build_id = $_POST['form_build_id'];
   $form = form_get_cache($form_build_id, $form_state);
 
-//  drupal_set_message("hahaha!");
-//  drupal_set_message(serialize($_POST));
+#  drupal_set_message("hahaha!");
+#  drupal_set_message("form: " . serialize($form));
+#  drupal_set_message("POST: " . serialize($_POST));
+#  drupal_set_message("fbid: " . serialize($form_build_id));
+  
 
   $args = $form['#parameters'];
   
@@ -840,18 +843,33 @@ function wisski_pathbuilder_undupl_submit($form, &$form_state) {
   $newarr = array();
   $newpaths = array();
 
-
   // go through all paths until we are at the point of the group
   $old_off = 0;
   foreach($offset as $off) {
     
+    // reset old_off if it was 0 up to now
+    if($old_off == 0)
+      $old_off = $off;    
+
+    // if the off is increased and the old off is not part of the new off then 
+    // we can go into the group and are save.        
+    if($off != $old_off && strpos($off, $old_off . '_') === FALSE) {
+      
+      $paths = &$paths[$old_off]['children'];
+    }
+    
     if($off == $arr[0])
-      break;
+      break;  
+      
+    /*
     if($off == $old_off) {
+      drupal_set_message("they are the same, going into children: " . serialize($paths));
       $paths = &$paths['children'];
     } else {
+      drupal_set_message("they are not the same, going into $off " . serialize($paths));
       $paths = &$paths[$off];
     }
+    */
     
     $old_off = $off;
   }
@@ -873,9 +891,7 @@ function wisski_pathbuilder_undupl_submit($form, &$form_state) {
       continue;
       
     $curid = $matches[1];
-    
-  //  drupal_set_message("gr " . $groupid . " cur " . $curid);
-  //  drupal_set_message("arr " . serialize($arr));
+
     // wenn die gruppe übereinstimmt, dann müssen wir was machen, sonst bleibts wies ist!
     if($arr[0] == $groupid) {
         
@@ -892,9 +908,9 @@ function wisski_pathbuilder_undupl_submit($form, &$form_state) {
 //        $newarr[$key] = $value;
         
         // if there is a path, kill it
-        if(!empty($paths[$key]));
+        if(!empty($paths[$key])) {
           unset($paths[$key]);        
-        
+        }
         continue;
       } // wenns größer ist müssen wir um eins dekrementieren! 
       else if($arr[1] < $curid) {
@@ -1398,7 +1414,7 @@ function wisski_pathbuilder_template_edit_submit($form, &$form_state) {
 }
 
 function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, $paths, $condition, $ov_pointer, $op_pointer, $main_subject = "", $parentpath = NULL, $parent_array = array(), &$main_subj_out = '') {
-
+  
   // if the group is a multi-group then the position in the array might not be correct anymore
   $path_mapping = array();
 
@@ -1438,6 +1454,7 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
   $fs_pointer = $fs_pointer[$groupid];
   $ov_pointer = $ov_pointer[$groupid];
   
+  
   // parent array for weight saving and detection of duplicateable groups
   $parent_array[] = (string)$groupid;
   
@@ -1450,10 +1467,11 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
   if($my_group['fieldtype'] == "ontogroup") {
     $fs_pointer = $fs_pointer[$groupid];
     $ov_pointer = $ov_pointer[$groupid];
+ 
     $parent_array[] = (string)$groupid;
     $iterator = $fs_pointer;
   }
-    
+      
   // iterate over the old values and delete deleted groups
   if(!empty($op_pointer)) {  
     foreach($op_pointer as $v => $oldpath) {
@@ -1461,12 +1479,20 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
       // get a path for analysation
       $path_to_analyze = $oldpath['path'];
       $found = false;
+      
+      // if there was no path it must not be deleted and we guess the new data is at the same place.
+      if(empty($path_to_analyze)) {
+#        $path_mapping[$v] = $v;
+        continue;
+      }
     
       // go through all paths and check if the old one is still there
+      // the problem is that there are no paths and no old paths and it decides wrongly then below
       foreach($paths as $p => $path) {
         if($path['path'] == $path_to_analyze) {
           // write the mapping where to find it
           $path_mapping[$p] = $v;
+          
           $found = true;
           continue;
         }
@@ -1474,12 +1500,13 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
 
       // no path found -> delete the group    
       if(!$found) {
+
         // if there was no path, there is nothing to delete ;)
         if(!empty($path_to_analyze)) {
           $length = floor(count($path_to_analyze)/2);
           if($length >= 1) {
             $delete = "DELETE { <" . $path_to_analyze['x' . ($length-1)] . "> <" . $path_to_analyze['y' . ($length-1)] . "> <" . $path_to_analyze['x' . $length] . "> }";
-          
+      
             wisski_store_getObj()->wisski_ARCAdapter_getStore()->query($delete);
           }
         }
@@ -1498,11 +1525,15 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
     $current_parent_array = $parent_array;
 
     // if this is a multi-group there has to be a mapping for the old value pointer
-    $ov = $ov_pointer[$path_mapping[$v]];
+    // exactly here it is null too often.
+    if(empty($path_mapping[$v]))
+      $ov = NULL;
+    else
+      $ov = $ov_pointer[$path_mapping[$v]];
 
     // get a current value pointer    
     $storefs = $fs_pointer[$v];
-
+ 
     // get all paths and subgroups from the group    
     $result = db_query("SELECT * FROM {wisski_template} WHERE group_id = $groupid ORDER BY is_group ASC");
     $triples = array();
@@ -1531,15 +1562,6 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
     
     $current_parent_array[] = (string)$v;
 
-    $groupcondition = "";
-    // d.h. die Gruppe gabs schon
-    if(!empty($paths[$v]['path'])) {
-      $data = $paths[$v]['path'];
-     
-      $groupcondition = ('. FILTER ( ?x' . floor(count($data)/2) . ' = <' . $data['x' . floor(count($data)/2)] . '> ) ');
-     
-    }
-
     // go through all fields
     while($row = db_fetch_array($result)) {
       $fs = $storefs;
@@ -1553,7 +1575,9 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
       // it is a true group
       if($row['is_group'] == 1) {
         
-        $got_triples = array_merge($got_triples, wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer[$v], $row['id'], $paths[$v]['children'], $condition, $ov_pointer[$v], $op_pointer[$v]['children'], $main_subject, $paths[$v]['path'], $current_parent_array));
+        
+        
+        $got_triples = array_merge($got_triples, wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer[$v], $row['id'], $paths[$v]['children'], $condition, $ov_pointer[$v], $op_pointer[$v]['children'], $main_subject, empty($paths[$v]['path']) ? $parentpath : $paths[$v]['path'], $current_parent_array));
         if(empty($main_subject) && empty($condition)) {
           $main_subject = $got_triples[0]['s'];
           $condition = "FILTER ( ?x0 = <" . $main_subject . ">)";
@@ -1595,9 +1619,9 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
         $old_values = wisski_pathbuilder_filter_undupl_button_data($old_values);
         $old_values = wisski_pathbuilder_filter_cls_button_data($old_values);
 
+
       // Delete the old ones
         foreach($old_values as $key => $value) {
-            
           // hack for select field which return an array with wrong indexes
           if(is_array($value)) {
 //            drupal_set_message("danger zone!");
@@ -1617,15 +1641,14 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
               foreach($sparql['triples'] as $triple) {
                 $delete .= ($triple .  " . ");
               }
+              
+              
                     
               if(!drupal_validate_utf8($local_value))
                 $local_value = utf8_encode($local_value);
+
+              $delete .= $condition . '. FILTER ( ?out = "' . wisski_store_escape_sparql_literal($local_value) . '" ) }';
               
-              if(!is_numeric($value))
-                $delete .= $condition . $groupcondition . '. FILTER ( ?out = "' . wisski_store_escape_sparql_literal($local_value) . '" ) }';
-              else
-                $delete .= $condition . '. FILTER ( ?out = ' . wisski_store_escape_sparql_literal($local_value) . ' ) }';
-                                        
               wisski_store_getObj()->wisski_ARCAdapter_getStore()->query($delete);
             }
           // normal handling
@@ -1648,31 +1671,21 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
               $delete = ("DELETE { " . $sparql['triples'][1+(($row['disamb'] - 2) * 2) ] . " . } WHERE { ");
             else
               $delete = ("DELETE { " . $sparql['triples'][count($data)] . " . } WHERE { ");
-
-            // do a dirty hack to get deletes for both directions
-            // the trick is to make from { { ... } UNION { ... } }
-            // only ... . ...
-            if(strpos($delete, "UNION") !== FALSE) {
-              // first kill {{
-              $delete = str_replace("{ { ", "", $delete);
-              // then replace UNION with .
-              $delete = str_replace("} UNION {", ".", $delete);
-              // kill }}
-              $delete = str_replace(" } }", "", $delete);
-            }
-                           
+                      
             foreach($sparql['triples'] as $triple) {
               $delete .= ($triple .  " . ");
             }
                     
             if(!drupal_validate_utf8($value))
               $value = utf8_encode($value);
-
-            if(!is_numeric($value))
-              $delete .= $condition . $groupcondition . '. FILTER ( ?out = "' . wisski_store_escape_sparql_literal($value) . '" ) }';
-            else
-              $delete .= $condition . '. FILTER ( ?out = ' . wisski_store_escape_sparql_literal($value) . ' ) }';
-                          
+            
+            if(strpos($sparql['triples'][count($data)], "numeric") === FALSE )
+              $delete .= $condition . '. FILTER ( ?out = "' . wisski_store_escape_sparql_literal($value) . '" ) }';
+            else {
+              $delete .= $condition . '. FILTER ( ?out = "' . wisski_store_escape_sparql_literal($value) . '"^^xsd:int ) }';
+              $delete .= $condition . '. FILTER ( ?out = "' . wisski_store_escape_sparql_literal($value) . '" ) }';
+            }
+                        
             wisski_store_getObj()->wisski_ARCAdapter_getStore()->query($delete);
           }
         }
@@ -1684,14 +1697,14 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
 
           // save the weight
           if(!empty($node->title) && is_array($fs[$row['id']]) && isset($fs[$row['id']]['weight_' . $key])) {
-/*
+
             if(empty($fs[$row['id']]['weight_' . $key]))
               $weight = 1;
             else
               $weight = $fs[$row['id']]['weight_' . $key];
-              */
+
             // dirty hack
-            $weight = 1;
+            //$weight = 1;
                         
             $my_parent_array = $current_parent_array;
             $my_parent_array[] = (string)$row['id'];
@@ -1712,13 +1725,12 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
               $value = utf8_encode($value);
             db_query("INSERT INTO {wisski_weight} (weight, title, field_id, value) VALUES ($weight, '" . $title . "', '%s', '" . mysql_real_escape_string($value) . "')", serialize($my_parent_array));
 
-//            drupal_set_message("inserted weight $weight to node id " . $node->nid . " with key " . serialize($my_parent_array));
           }
 
-//          drupal_set_message("looking for $value at $key but I should look at " . array_search($key, $path_mapping) . "!");
           if(empty($value) || $value == "" || $old_values[$key] == $value)
             continue;
 
+          // add new values if there are any
           if($value) {
           
             
@@ -1733,7 +1745,7 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
 
             // d.h. die Gruppe gabs schon
             if(!empty($paths[$v]['path'])) {
-//              drupal_set_message("There is a path");
+   
               $data = $paths[$v]['path'];
    //           drupal_set_message(serialize($data));
               $sp = _wisski_pathbuilder_calculate_group_samepart($groupid);
@@ -1751,17 +1763,17 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
             
             } // die gruppe gabs noch nicht 
             else if(empty($paths[$v]['path'])) {
+  
               // wenn das parent 0 ist, ist es eine Hauptgruppe -> einfach generieren
               if(!$my_group['group_id']) {
 //                drupal_set_message("it is a main group");
 //                drupal_set_message("MS ist: " . $main_subject);
                 if(!empty($main_subject)) {
-//                  drupal_set_message("There is a ms!", 'error');
+  
                   $data = wisski_pathbuilder_get_group_samepart_data($my_group['id'], $main_subject);
 
 //                  $sp = _wisski_pathbuilder_calculate_group_samepart($groupid);
                   
-//                  drupal_set_message("data is: " . serialize($data));
                   
                   list($indiv, $auth_triples, $x) = wisski_pathbuilder_check_auth_triples($auth_key, $value, $authinfo, $main_subject);
                   if (empty($indiv)) {
@@ -1794,7 +1806,7 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
                     $data = $parentpath;
                   else
                     $data = wisski_pathbuilder_get_group_samepart_data($my_group['group_id'], $main_subject);
-
+                    
                   list($indiv, $auth_triples, $x) = wisski_pathbuilder_check_auth_triples($auth_key, $value, $authinfo, $main_subject);
 
                   if (empty($indiv)) {
@@ -1864,6 +1876,7 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
               
             
             }
+            
             
             wisski_store_getObj()->wisski_ARCAdapter_getStore()->insert($triples, wisski_store_getObj()->wisski_ARCAdapter_graphName(), FALSE);
             
@@ -2241,7 +2254,7 @@ function wisski_pathbuilder_path_view($form_state, $node) {
   * @return: TRUE if the dumpfile was deleted
   */
   function wisski_pathbuilder_delExpo($f, $form_state) {
-    drupal_set_message("Deleting " . file_directory_path() . '/' . $form_state['clicked_button']['#name']);
+  
     file_delete(file_directory_path() . '/' . $form_state['clicked_button']['#name']);
     return TRUE;
   }
@@ -3230,8 +3243,7 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
   global $user;
 
   $resultgroup = db_query("SELECT * FROM {wisski_template} WHERE is_group = 1 AND enabled = 1 AND id = $parentID");
-  $resultfields = db_query("SELECT * FROM {wisski_template} WHERE enabled = 1 AND group_id = " . $parentID . " ORDER BY weight ASC");
-
+  
   $form = array();
 
   $grouparr = db_fetch_array($resultgroup);
@@ -3265,6 +3277,9 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
   $is_multi_group = FALSE;
   $basearr = array();
   $myparents = array();
+  
+  // get the paths for the group
+  $grouppaths = $paths;
 
   if(isset($grouparr['id'])) {
     $wrapper = "";
@@ -3290,17 +3305,11 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
           $multigroup[$key] = $grp_val;
         }
       
-//          drupal_set_message(serialize($grp_val)); 	    
-
-      
-      
       $parent_array[] = (string)$grouparr['id'];
-//      $parent_array[] = (string)$grouparr['id'];
       
       drupal_add_js('misc/collapse.js');
       $wrapper .= '<fieldset class="collapsible wki-fieldset-view"><legend>' . $grouparr['name'] . '</legend>'; // <- Schwule schreibweise :P
 
-//      $parent_array[] = (string)$grouparr['id'];
     } else { // edit, add, ...
     
       if($grouparr['fieldtype'] != "ontogroup") {
@@ -3313,7 +3322,7 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
           '#title' => t($grouparr['name']),
           '#tree' => TRUE,
         );
-        
+                
         // collapse if wanted
         if(!empty($grouparr['collapsed']))
           if($input != 1)
@@ -3334,6 +3343,7 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
           // If there is data, don't collapse!
           if(!empty($results)) {
             $form['form'][$grouparr['id']]['#collapsed'] = FALSE;
+          } else {
           }
 
           $grp_val = false;
@@ -3346,23 +3356,16 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
               $grp_val['x' . $i] = $value['x' . $i];
             }
           
-//          drupal_set_message(serialize($grp_val)); 	    
           if($grp_val) {
             $paths[$grouparr['id']]['path'] = $grp_val;
-            $paths = &$paths[$grouparr['id']]['children'];
           }            
-//          drupal_set_message("hier: " . serialize($grp_val));
         }      
-//        drupal_set_message("path " . $grouparr['id'] . " is: " . serialize($grp_val));
-//        drupal_set_message(serialize($paths));
 
       } else {
 
         $is_multi_group = TRUE;
         $grp_val = false;
         $from_db = false;        
-
-  //      drupal_set_message("fs is: " . serialize($form_state));
         
         if(!empty($form_state[$grouparr['id']]))
           $grp_val = $form_state[$grouparr['id']][$grouparr['id']];
@@ -3384,18 +3387,13 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
               $grp_val[$key]['x' . $i] = $value['x' . $i];
               $from_db = true;
             }
-          //drupal_set_message(serialize($grp_val)); 	    
-
           }
         }
         
-            
-        //drupal_set_message(htmlentities($q));
         
         $myparents = $parent_array;
         $myparents[] = $grouparr['id'];
         $myparents[] = $grouparr['id'];
-//        drupal_set_message("fs is: " . serialize($form_state[$grouparr['id']]["button"]));
 
         if(!empty($form_state[$grouparr['id']]["button"])) {
           $keys = array_keys($form_state[$grouparr['id']]["button"]);
@@ -3431,8 +3429,6 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
         $tmpVal['#suffix'] = '</div>';
         $tmpVal['#tree'] = TRUE;        
 
-  //      drupal_set_message("grp_val is: " . serialize($grp_val));
-  //      drupal_set_message("id: " . $grouparr['id']);
         $countiter = 0;
         
         if(empty($grp_val))
@@ -3445,15 +3441,11 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
 
         // for every value which is there generate an own group.
         foreach($grp_val as $key => $a_group) {        
-//          drupal_set_message("from db is: " . serialize($from_db));
-//          drupal_set_message("group is: $key " . serialize($grp_val));
-//          drupal_set_message("name is: " . serialize($grouparr['name']));
+
           if($from_db) {
             $paths[$grouparr['id'] . "_" . $countiter]['path'] = $a_group;
-//            $paths = &$paths[$grouparr['id'] . "_" . $countiter]['children'];
           }
           
-                    
           $tmpVal[$grouparr['id'] . "_" . $countiter] = array(
             '#collapsed' => FALSE,
             '#type' => 'fieldset',
@@ -3463,15 +3455,17 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
             '#tree' => TRUE,
           );
           
-          // if it should be collapsed, collapse it!
-          if(!empty($grouparr['collapsed'])) 
-            $tmpVal[$grouparr['id'] . "_" . $countiter]['#collapsed'] = TRUE;
           
-          // however it shouldn't collapse if we are in create dialogue or if there is data!
-          if(!empty($results) || $input == 1) {
-            $tmpVal[$grouparr['id'] . "_" . $countiter]['#collapsed'] = FALSE;
+          // if it should be collapsed, collapse it!
+          if(!empty($grouparr['collapsed'])) {
+            $tmpVal[$grouparr['id'] . "_" . $countiter]['#collapsed'] = TRUE;
           }
           
+          // however it shouldn't collapse if we are in create dialogue or if there is data!
+          if(!empty($results) || $input == 1 || !empty($form_state[$grouparr['id']][$grouparr['id']])) {
+            $tmpVal[$grouparr['id'] . "_" . $countiter]['#collapsed'] = FALSE;
+          }
+
           $node = node_load(arg(1));
           
           global $base_url;
@@ -3556,43 +3550,38 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
   
   if(count($multigroup) > $multicount)
     $multicount = count($multigroup);
+  
+  // save the path position - every iteration we have to come back here!
   $savepaths = &$paths;    
   
   for($multiit = 0; $multiit < $multicount; $multiit++) {
   $elementbase = "";  
   
-  //drupal_set_message("multigroup is: " . serialize($multigroup));
-  
   $pos = floor(count($samepart)/2);
 
-//  drupal_set_message("multigroup is: " . serialize($multigroup[$multiit]));
-
-//  drupal_set_message("pos is: " . $pos);
-  
+    
   if($multicount > 1)
     $spqcondition = $sparqlcondition . " . FILTER ( ?x" . $pos . " = <" . $multigroup[$multiit]['x' . $pos] . "> )";
   else
     $spqcondition = $sparqlcondition; 
 
 
-//  drupal_set_message(htmlentities($spqcondition));
-  
-  $resultfields = db_query("SELECT * FROM {wisski_template} WHERE enabled = 1 AND group_id = " . $parentID . " ORDER BY weight ASC");
   $current_parent_array = $parent_array;
   
+  // if it isn't a multi-group
   if(!$is_multi_group) {
     $tmpbase = &$base[$grouparr['id']];
     $fs = $form_state[$grouparr['id']];
     $current_parent_array[] = (string)$grouparr['id'];
+    $paths = &$savepaths[$grouparr['id']]['children'];
   } else if($is_multi_group) {
     $tmpbase = &$base[$grouparr['id'] . '_' . $multiit];
     $fs = $form_state[$grouparr['id'] . '_' . $multiit];
     $paths = &$savepaths[$grouparr['id'] . '_' . $multiit]['children'];  
     $current_parent_array[] = (string)($grouparr['id'] . '_' . $multiit);
   }
- // drupal_set_message("after: " . serialize($form_state));
   
-//  drupal_set_message("multiit ist: " . $multiit);
+  $resultfields = db_query("SELECT * FROM {wisski_template} WHERE enabled = 1 AND group_id = " . $parentID . " ORDER BY weight ASC");
   
   while($arr = db_fetch_array($resultfields)) {
     $iterator++;
@@ -3826,12 +3815,20 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
 
         if(!isset($wasHere[$q]))
           $wasHere[$q] = 0;
+                  
+        if(!empty($savepaths[$grouparr['id'] . "_" . $multiit]['path']) || !empty($savepaths[$grouparr['id']]['path']) || !empty($fs[$arr['id']][$arr['id']]) ) {          
+          $out = wisski_store_getObj()->wisski_ARCAdapter_getStore()->query($q);
+          $resultarr = $out['result']['rows'][$wasHere[$q]];
+          $result = $out['result']['rows'][$wasHere[$q]]['out'];
+          $wasHere[$q] = $wasHere[$q] +1;
+        } else {
+          $result = "";
+          $resultarr = array('out' => "");
+          $wasHere[$q] = $wasHere[$q] +1;
+        }
 
-        $out = wisski_store_getObj()->wisski_ARCAdapter_getStore()->query($q);
-        $resultarr = $out['result']['rows'][$wasHere[$q]];
-        $result = $out['result']['rows'][$wasHere[$q]]['out'];
-        $wasHere[$q] = $wasHere[$q] +1;
-
+        
+        
         $node = node_load(arg(1));
         $title = $node->title;
                 
