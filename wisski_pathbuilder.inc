@@ -1647,7 +1647,7 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
               if(!drupal_validate_utf8($local_value))
                 $local_value = utf8_encode($local_value);
 
-              $delete .= $condition . '. FILTER ( ?out = "' . wisski_store_escape_sparql_literal($local_value) . '" ) }';
+              $delete .= $condition . '. FILTER ( STR(?out) = "' . wisski_store_escape_sparql_literal($local_value) . '" ) }';
               
               wisski_store_getObj()->wisski_ARCAdapter_getStore()->query($delete);
             }
@@ -1671,6 +1671,19 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
               $delete = ("DELETE { " . $sparql['triples'][1+(($row['disamb'] - 2) * 2) ] . " . } WHERE { ");
             else
               $delete = ("DELETE { " . $sparql['triples'][count($data)] . " . } WHERE { ");
+              
+            // do a dirty hack to get deletes for both directions
+            // the trick is to make from { { ... } UNION { ... } }
+            // only ... . ...
+            if(strpos($delete, "UNION") !== FALSE) {
+              // first kill {{
+              $delete = str_replace("{ { ", "", $delete);
+              // then replace UNION with .
+              $delete = str_replace("} UNION {", ".", $delete);
+              // kill }}
+              $delete = str_replace(" } }", "", $delete);
+            }
+              
                       
             foreach($sparql['triples'] as $triple) {
               $delete .= ($triple .  " . ");
@@ -1679,13 +1692,15 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
             if(!drupal_validate_utf8($value))
               $value = utf8_encode($value);
             
-            if(strpos($sparql['triples'][count($data)], "numeric") === FALSE )
-              $delete .= $condition . '. FILTER ( ?out = "' . wisski_store_escape_sparql_literal($value) . '" ) }';
-            else {
-              $delete .= $condition . '. FILTER ( ?out = "' . wisski_store_escape_sparql_literal($value) . '"^^xsd:int ) }';
-              $delete .= $condition . '. FILTER ( ?out = "' . wisski_store_escape_sparql_literal($value) . '" ) }';
-            }
-                        
+#            if(strpos($sparql['triples'][count($data)], "numeric") === FALSE )
+#              $delete .= $condition . '. FILTER ( ?out = "' . wisski_store_escape_sparql_literal($value) . '" ) }';
+#            else {
+#              $delete .= $condition . '. FILTER ( ?out = "' . wisski_store_escape_sparql_literal($value) . '"^^xsd:int ) }';
+#              $delete .= $condition . '. FILTER ( ?out = "' . wisski_store_escape_sparql_literal($value) . '" ) }';
+#            }
+
+            $delete .= $condition . '. FILTER ( STR(?out) = "' . wisski_store_escape_sparql_literal($value) . '" ) }';                        
+
             wisski_store_getObj()->wisski_ARCAdapter_getStore()->query($delete);
           }
         }
