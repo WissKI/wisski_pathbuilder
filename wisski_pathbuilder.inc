@@ -1576,8 +1576,11 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
       if($row['is_group'] == 1) {
         
         
+        if(empty($path_mapping[$v]))
+          $got_triples = array_merge($got_triples, wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer[$v], $row['id'], $paths[$v]['children'], $condition, $ov_pointer[$v], $op_pointer[$v]['children'], $main_subject, empty($paths[$v]['path']) ? $parentpath : $paths[$v]['path'], $current_parent_array));
+        else
+          $got_triples = array_merge($got_triples, wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer[$v], $row['id'], $paths[$v]['children'], $condition, $ov_pointer[$path_mapping[$v]], $op_pointer[$path_mapping[$v]]['children'], $main_subject, empty($paths[$v]['path']) ? $parentpath : $paths[$v]['path'], $current_parent_array));
         
-        $got_triples = array_merge($got_triples, wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer[$v], $row['id'], $paths[$v]['children'], $condition, $ov_pointer[$v], $op_pointer[$v]['children'], $main_subject, empty($paths[$v]['path']) ? $parentpath : $paths[$v]['path'], $current_parent_array));
         if(empty($main_subject) && empty($condition)) {
           $main_subject = $got_triples[0]['s'];
           $condition = "FILTER ( ?x0 = <" . $main_subject . ">)";
@@ -1719,7 +1722,10 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
               $weight = $fs[$row['id']]['weight_' . $key];
 
             // dirty hack
-            //$weight = 1;
+            #$weight = 1;
+            if($weight >= 1000) {
+              $weight = $weight % 1000;
+            }
                         
             $my_parent_array = $current_parent_array;
             $my_parent_array[] = (string)$row['id'];
@@ -1760,9 +1766,9 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
 
             // d.h. die Gruppe gabs schon
             if(!empty($paths[$v]['path'])) {
-   
+      
               $data = $paths[$v]['path'];
-   //           drupal_set_message(serialize($data));
+            
               $sp = _wisski_pathbuilder_calculate_group_samepart($groupid);
    //           drupal_set_message(serialize($sp));
 
@@ -1774,11 +1780,11 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
                 if (empty($main_subject)) $main_subject = $indiv;
                 $triples = array_merge($triples, $auth_triples);
               }
-              
+                          
             
             } // die gruppe gabs noch nicht 
             else if(empty($paths[$v]['path'])) {
-  
+            
               // wenn das parent 0 ist, ist es eine Hauptgruppe -> einfach generieren
               if(!$my_group['group_id']) {
 //                drupal_set_message("it is a main group");
@@ -1814,7 +1820,7 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
                   $condition = "FILTER ( ?x0 = <" . $main_subject . ">) ";
                 }
               } else { // Keine Hauptgruppe?
-
+            
                 if(!empty($main_subject)) {
 
                   if($parentpath)
@@ -1832,21 +1838,25 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
                     $triples = array_merge($triples, $auth_triples);
                   }
                   
+
                   $path = $data;
 
                   $sp = _wisski_pathbuilder_calculate_group_samepart($groupid);
                   
                   $m_triples = $triples;
                   
+                  
                   for($i=floor(count($data)/2); $i<floor(count($sp)/2); $i++) {
                     $pred = $sp['y' . $i];
                     $path['y' . $i] = $pred;
+                    $continue = false;
                     
                     foreach($m_triples as $m_key => $triple) {
                       if($triple['p'] == $pred) {
+
                         $path['x' . ($i+1)] = $triple['o'];
                         unset($m_triples[$m_key]);
-                        continue;
+                        break;
                       }
                     }
                   }
@@ -1877,7 +1887,7 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
                       if($triple['p'] == $pred) {
                         $path['x' . ($i+1)] = $triple['o'];
                         unset($m_triples[$m_key]);
-                        continue;
+                        break;
                       }
                     }
                   }
