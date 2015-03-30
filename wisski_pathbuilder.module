@@ -1060,7 +1060,7 @@ function wisski_pathbuilder_pb_changesettings($fieldtype, $id, $preset) {
       $my_preset['#options'] = wisski_pathbuilder_getOptionArray($id);
       
       if($fieldtype == 'dropdown')
-        $my_preset['#options'] = array_merge(array('' => ''), $my_preset['#options']);
+        $my_preset['#options'] = array_merge(array('' => t('Select')), $my_preset['#options']);
 
     } else {
       //$my_preset['#type'] = "textfield";    
