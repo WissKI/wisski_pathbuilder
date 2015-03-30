@@ -1058,6 +1058,9 @@ function wisski_pathbuilder_pb_changesettings($fieldtype, $id, $preset) {
   if($row_information['edit_type'] == 'multiple') {
     if(!$row_information['add_button']) {
       $my_preset['#options'] = wisski_pathbuilder_getOptionArray($id);
+      
+      if($fieldtype == 'dropdown')
+        $my_preset['#options'] = array_merge(array('' => ''), $my_preset['#options']);
 
     } else {
       //$my_preset['#type'] = "textfield";    
