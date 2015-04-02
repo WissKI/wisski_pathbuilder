@@ -100,7 +100,7 @@ function wisski_pathbuilder_schema() {
         'size' => 'big',
 
         'not null' => TRUE,
-        'default' => '',
+
         'description' => 'The array for the path.',
       ),
       
@@ -146,7 +146,7 @@ function wisski_pathbuilder_schema() {
         'type' => 'text',
         'size' => 'big',
         'not null' => TRUE,
-        'default' => '',
+
         'description' => 'A long description for the user.',
       ),
       
