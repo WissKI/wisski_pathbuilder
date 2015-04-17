@@ -1576,11 +1576,32 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
       if($row['is_group'] == 1) {
         
         
-        if(empty($path_mapping[$v]))
+        if(empty($path_mapping[$v])) { // there was nothing before
           $got_triples = array_merge($got_triples, wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer[$v], $row['id'], $paths[$v]['children'], $condition, $ov_pointer[$v], $op_pointer[$v]['children'], $main_subject, empty($paths[$v]['path']) ? $parentpath : $paths[$v]['path'], $current_parent_array));
-        else
-          $got_triples = array_merge($got_triples, wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer[$v], $row['id'], $paths[$v]['children'], $condition, $ov_pointer[$path_mapping[$v]], $op_pointer[$path_mapping[$v]]['children'], $main_subject, empty($paths[$v]['path']) ? $parentpath : $paths[$v]['path'], $current_parent_array));
+        } else {// there was something before.
         
+          // get the path for the condition
+          $condpath = $op_pointer[$path_mapping[$v]]['path'];
+         
+          // temporarily save the conditions, so further ones in the same block won't be modified
+          $tmp_condition = $condition;
+          
+          if(!empty($condpath)) { // there is nothing?
+            
+            // position of the condition
+            $condpos = floor(count($op_pointer[$path_mapping[$v]]['path'])/2);
+            
+            // build the new condition
+            $new_cond = "FILTER ( ?x" . $condpos . " = <" . $condpath["x" . $condpos] . "> )";
+            
+            // if it is already there, don't add it again
+            if(strpos($tmp_condition, $new_cond) === FALSE)
+              $tmp_condition .= " . " . $new_cond;
+          }
+                
+          $got_triples = array_merge($got_triples, wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer[$v], $row['id'], $paths[$v]['children'], $condition, $ov_pointer[$path_mapping[$v]], $op_pointer[$path_mapping[$v]]['children'], $main_subject, empty($paths[$v]['path']) ? $parentpath : $paths[$v]['path'], $current_parent_array));
+        }
+                
         if(empty($main_subject) && empty($condition)) {
           $main_subject = $got_triples[0]['s'];
           $condition = "FILTER ( ?x0 = <" . $main_subject . ">)";
