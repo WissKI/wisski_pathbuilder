@@ -2339,8 +2339,10 @@ function wisski_pathbuilder_path_view($form_state, $node) {
         if ($key == 'path_array') {
           $value = unserialize($value);
           $pa_node = $this_path->addChild($key);
+          // don't do this x0, x1, x2-shit anymore
           foreach ($value as $k => $v) {
-            $pa_node->addChild($k, htmlspecialchars($v));
+            // only take the first of x1, y3 etc...
+            $pa_node->addChild(substr($k, 0, 1), htmlspecialchars($v));
           }
         } else {
           $this_path->addChild($key, htmlspecialchars($value));
@@ -2374,8 +2376,14 @@ function wisski_pathbuilder_path_view($form_state, $node) {
 // inserted by martin scholz
 // see ..._export_paths()
       $path_array = array();
+      
+      // enumerate the concepts and properties again
+      $count = 0;
       foreach ($path->path_array->children() as $n) {
-        $path_array[$n->getName()] = wisski_store_getObj()->wisski_ARCAdapter_delNamespace((string) $n);
+        // skip any numbers which might be there
+        $path_array[substr($n->getName(),0,1) . floor($count)] = wisski_store_getObj()->wisski_ARCAdapter_delNamespace((string) $n);
+        // increase by 0.5 and floor it - so you get x0, y0 and then x1, ...
+        $count += 0.5;
       }
       $path_array = serialize($path_array);
 // end insert
