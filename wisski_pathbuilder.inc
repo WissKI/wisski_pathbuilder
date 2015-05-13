@@ -2565,7 +2565,7 @@ function wisski_pathbuilder_get_sparql($id, $conditions = "", $triplewise = FALS
   if($item['is_group'])
     $item['length'] = floor(count($path)/2);
 
-  if(empty($item['datatype_property'])) {
+  if((empty($item['datatype_property']) || wisski_store_getObj()->wisski_ARCAdapter_delNamespace("") == $item['datatype_property']) && !$item['is_group']) {
     $datatypeprops = wisski_store_getObj()->wisski_ARCAdapter_getDatatypePropertiesForConcept($path[("x" . $item["length"])]);
     $datatypeprop = $datatypeprops[0];
       
