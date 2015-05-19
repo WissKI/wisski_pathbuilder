@@ -4926,13 +4926,15 @@ function wisski_pathbuilder_edit_item(&$form_state, $type, $item, $menu) {
     $types[] = 3;
   if(!($data['type'] % 5))
     $types[] = 5;
+  if(!($data['type'] % 7))
+    $types[] = 7;
 
   $form['item']['type'] = array(
       '#default_value' => $types,
 
       '#type' => 'checkboxes',
       '#options' => array(2 => "internal display", 3 => "import", 
-        5 => "export"),
+        5 => "export", 7 => "Find"),
       '#title' => 'This path or group is used for',
       );
 
