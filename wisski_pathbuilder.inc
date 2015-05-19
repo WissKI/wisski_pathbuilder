@@ -18,7 +18,7 @@ function wisski_pathbuilder_node_form($node, $form_state) {
  * @author Mark Fichtner
  */
 function wisski_pathbuilder_getPathbuilderTrees() {
-  return array(2 => "Internal display", 3 => "Import", 5 => "Export");
+  return array(2 => "Internal display", 3 => "Import", 5 => "Export", 7 => "Find");
 }
 
 /**
