@@ -1602,9 +1602,14 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
           $got_triples = array_merge($got_triples, wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer[$v], $row['id'], $paths[$v]['children'], $condition, $ov_pointer[$path_mapping[$v]], $op_pointer[$path_mapping[$v]]['children'], $main_subject, empty($paths[$v]['path']) ? $parentpath : $paths[$v]['path'], $current_parent_array));
         }
                 
+        // if we have no main subject up to now, we might get one from the group
         if(empty($main_subject) && empty($condition)) {
-          $main_subject = $got_triples[0]['s'];
-          $condition = "FILTER ( ?x0 = <" . $main_subject . ">)";
+            $main_subject = $got_triples[0]['s'];
+          
+          // only set a condition if there is a main subject... every thing else would be very wrong
+          // would result in wrong statements
+          if(!empty($main_subject))
+            $condition = "FILTER ( ?x0 = <" . $main_subject . ">)";
         }
                 
       } else {
@@ -1916,6 +1921,7 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
                   $paths[$v]['path'] = $path;
                   
                   if (empty($main_subject)) $main_subject = $triples[0]['s'];
+                  
                   $condition = "FILTER ( ?x0 = <" . $main_subject . ">) ";
                 }
               }
