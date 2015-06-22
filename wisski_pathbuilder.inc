@@ -2095,9 +2095,8 @@ function _wisski_pathbuilder_generate_triples_of_path($form, $valuestr, $id, $su
     $outTriples = array_merge($outTriples, $tmpTriples);
   }
 
-
   if(empty($objIn) || !$disambx || !isset($disambx)) {
-    if(empty($row['datatype_property'])) {
+    if(empty($row['datatype_property']) || wisski_store_getObj()->wisski_ARCAdapter_delNamespace("") == $row['datatype_property']) {
       $datatypeprops = wisski_store_getObj()->wisski_ARCAdapter_getDatatypePropertiesForConcept($path[("x" . ($i))]);
       $datatypeprop = $datatypeprops[0];
     } else
@@ -2567,23 +2566,37 @@ function wisski_pathbuilder_get_sparql($id, $conditions = "", $triplewise = FALS
     $path = _wisski_pathbuilder_calculate_group_samepart($id);
   else
     $path = unserialize($item["path_array"]);
+    
+  
 
-  if($item['is_group'])
+  if($item['is_group']) {
     $item['length'] = floor(count($path)/2);
+    
+    // data clearing - a group has no datatype property.
+    if(!empty($item['datatype_property']))
+      db_query("UPDATE {wisski_template} SET datatype_property = '' WHERE id = " . $id);
+  } else {
 
-  if(empty($item['datatype_property'])) {
-    $datatypeprops = wisski_store_getObj()->wisski_ARCAdapter_getDatatypePropertiesForConcept($path[("x" . $item["length"])]);
-    $datatypeprop = $datatypeprops[0];
+    $item['length'] = floor(count($path)/2);    
       
-    if(empty($datatypeprop)) {
-      $datatypeprop = "none possible.";
-      return "";
-    }
+    // if it is not a group and if the datatype property is empty or it is the local uri
+    if((empty($item['datatype_property']) || wisski_store_getObj()->wisski_ARCAdapter_delNamespace("") == $item['datatype_property']) || $item['datatype_property'] == "none possible.") {
+#      drupal_set_message("length: " . serialize($item["length"]) . " " . serialize($path));
+      $datatypeprops = wisski_store_getObj()->wisski_ARCAdapter_getDatatypePropertiesForConcept($path[("x" . $item["length"])]);
+      $datatypeprop = $datatypeprops[0];
+      
+      if(empty($datatypeprop)) {
+        drupal_set_message("Warning: I could not detect a datatype property for path " . $item['id'] . " with name " . $item['name'], "error");
+        $datatypeprop = "none possible.";
+#        return "";
+      }
         
-    db_query("UPDATE {wisski_template} SET datatype_property = '" . $datatypeprop . "' WHERE id = " . $id);
-  } else
-    $datatypeprop = $item['datatype_property'];
-
+      db_query("UPDATE {wisski_template} SET datatype_property = '" . $datatypeprop . "' WHERE id = " . $id);
+    } else
+      $datatypeprop = $item['datatype_property'];
+  }
+  
+  
   if(!$triplewise) {
     $sparql = "";
 
@@ -2602,14 +2615,14 @@ function wisski_pathbuilder_get_sparql($id, $conditions = "", $triplewise = FALS
 
     // if inverse reasoning is enabled, do it!
     if(!variable_get("wisskiReasoner_inverse_reasoning",FALSE) || !$inverse) {
-      for($ii=$startpoint; $ii<floor(count($path)/2); $ii++) {
+      for($ii=$startpoint; $ii<$item['length']; $ii++) {
         // if the user told us what he wants, fetch this otherwise select everything
         if(empty($returnvars))
           $sparqlstart .= "?x$ii ";
         $sparqlmid .= "?x$ii rdf:type <" . $path["x$ii"] . "> . ?x$ii <" . $path["y$ii"] . "> ?x" . ($ii + 1) . " . ";
       }
     } else {
-      for($ii=$startpoint; $ii<floor(count($path)/2); $ii++) {
+      for($ii=$startpoint; $ii<$item['length']; $ii++) {
         // if the user told us what he wants, fetch this otherwise select everything
         if(empty($returnvars))
           $sparqlstart .= "?x$ii ";
@@ -2627,16 +2640,16 @@ function wisski_pathbuilder_get_sparql($id, $conditions = "", $triplewise = FALS
     // if this is the sparql-query for a group, don't append any primitive data properties      
     if($item['is_group']) {
       if(empty($returnvars))
-        $sparqlstart = $sparqlstart . "?x" . floor(count($path)/2) . " ";
-      $sparqlmid = $sparqlmid . "?x" . floor(count($path)/2) . " rdf:type <". $path[("x" . floor(count($path)/2))] . "> . ";
+        $sparqlstart = $sparqlstart . "?x" . $item['length'] . " ";
+      $sparqlmid = $sparqlmid . "?x" . $item['length'] . " rdf:type <". $path[("x" . $item['length'])] . "> . ";
 
       $sparql = $sparqlstart . $sparqlmid . $conditions . " }";
     // if it is a path, append the primitive data property
     } else {
       if(empty($returnvars))
-        $sparqlstart = $sparqlstart . "?x" . floor(count($path)/2) . " ?out ";
-      $sparqlmid = $sparqlmid . "?x" . floor(count($path)/2) . " rdf:type <". $path[("x" . floor(count($path)/2))] . "> . ?x" . 
-        floor(count($path)/2) . " <" . $datatypeprop . "> ?out . ";
+        $sparqlstart = $sparqlstart . "?x" . $item['length'] . " ?out ";
+      $sparqlmid = $sparqlmid . "?x" . $item['length'] . " rdf:type <". $path[("x" . $item['length'])] . "> . ?x" . 
+        $item['length'] . " <" . $datatypeprop . "> ?out . ";
 
       $sparql = $sparqlstart . $sparqlmid . $conditions . " }";
     }      
@@ -2665,7 +2678,7 @@ function wisski_pathbuilder_get_sparql($id, $conditions = "", $triplewise = FALS
       }
 
     if(!variable_get("wisskiReasoner_inverse_reasoning",FALSE) || !$inverse) {
-      for($ii=$startpoint; $ii<floor(count($path)/2); $ii++) {
+      for($ii=$startpoint; $ii<$item['length']; $ii++) {
         if(empty($returnvars)) {
           $sparqlstart .= "?x$ii ";
           $elements[] = "?x$ii";
@@ -2675,7 +2688,7 @@ function wisski_pathbuilder_get_sparql($id, $conditions = "", $triplewise = FALS
         $sparqltriples[] = "?x$ii <" . $path["y$ii"] . "> ?x" . ($ii + 1) . "";
       }
     } else {
-      for($ii=$startpoint; $ii<floor(count($path)/2); $ii++) {
+      for($ii=$startpoint; $ii<$item['length']; $ii++) {
         if(empty($returnvars)) {
           $sparqlstart .= "?x$ii ";
           $elements[] = "?x$ii";
@@ -2694,31 +2707,31 @@ function wisski_pathbuilder_get_sparql($id, $conditions = "", $triplewise = FALS
       }
     }
 
-    $elements[] = ("?x" . floor(count($path)/2));
+    $elements[] = ("?x" . $item['length']);
     if(!$item['is_group']) {
       if(empty($returnvars)) {
         $elements[] = "?out";
-        $sparqlstart = $sparqlstart . "?x" . floor(count($path)/2) . " ?out";
+        $sparqlstart = $sparqlstart . "?x" . $item['length'] . " ?out";
       }
       $sparql["start"] = $sparqlstart;
     } else {
       if(empty($returnvars))
-        $sparqlstart = $sparqlstart . "?x" . floor(count($path)/2);
+        $sparqlstart = $sparqlstart . "?x" . $item['length'];
       $sparql["start"] = $sparqlstart;
     }
     $sparql["end"] = $conditions . " }";
 
-    $sparqltriples[] = ("?x" . floor(count($path)/2) . " rdf:type <" . $path[("x" . floor(count($path)/2))] . ">");
+    $sparqltriples[] = ("?x" . $item['length'] . " rdf:type <" . $path[("x" . $item['length'])] . ">");
 
     if(!$item['is_group']) {
       if(empty($returnvars))
-        $sparqltriples[] = ("?x" . floor(count($path)/2) . " <". $datatypeprop . "> ?out");
+        $sparqltriples[] = ("?x" . $item['length'] . " <". $datatypeprop . "> ?out");
     
     }
 
     $sparql["triples"] = $sparqltriples;  
     $sparql["elements"] = $elements;
-    $sparql["primitive"] = ("?x" . floor(count($path)/2) . " <". $datatypeprop . "> ?out");  
+    $sparql["primitive"] = ("?x" . $item['length'] . " <". $datatypeprop . "> ?out");  
     $sparql["primitive_prop"] = $datatypeprop;
   }
 
