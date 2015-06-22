@@ -201,14 +201,14 @@ function wisski_pathbuilder_schema() {
       'autocomplete' => array(
 	'type' => 'int',
 	'not null' => TRUE,
-	'defeault' => 1,
+	'default' => 1,
 	'description' => 'activate/deactivate autocomplete, default is active',
       ),
 
       'collapsed' => array(
 	'type' => 'int',
 	'not null' => TRUE,
-	'defeault' => 0,
+	'default' => 0,
 	'description' => 'Is this group collapsed by default?',
       ),
       
