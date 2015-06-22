@@ -295,6 +295,48 @@ function wisski_pathbuilder_getPathData($pathid) {
   $result = db_query("SELECT * FROM {wisski_template} WHERE id = '$pathid'");
     
   $arr = db_fetch_array($result);
+  
+  // do some repairs to wrong paths
+  $path_arr = unserialize($arr['path_array']);
+
+  // 1.) if it is a group it has no dt_prop
+  if($arr['is_group']) {
+    if(!empty($arr['datatype_property'])) {
+      db_query("UPDATE {wisski_template} SET datatype_property = '' WHERE id = " . $pathid);
+    }
+  } else { // 2.) if it is no group it has to has a datatype_property
+    // 2.a) fix the length
+    $length = count($path_arr);
+    // if length is not odd, it is not a valid path_array. so we have to fix this
+    if(!($length&1)) {
+      $length--;
+      
+      // remove the last element
+      array_pop($path_arr);
+      // update
+      db_query("UPDATE {wisski_template} SET path_array = '%s' WHERE id = " . $pathid, serialize($path_arr));
+    }
+
+    // if they differ, it has to be adjusted in the database          
+    if($arr['length'] != floor($length/2)) {
+      db_query("UPDATE {wisski_template} SET length = " . floor($length/2) . " WHERE id = " . $pathid);
+      $arr['length'] = floor($length/2);
+    }
+
+    // fix the datatype property if it is wrong    
+    if(empty($arr['datatype_property']) || wisski_store_getObj()->wisski_ARCAdapter_delNamespace("") == $arr['datatype_property']) {
+      drupal_set_message("I am asking. " . serialize($path_arr[("x" . $arr['length'])]));
+      $datatypeprops = wisski_store_getObj()->wisski_ARCAdapter_getDatatypePropertiesForConcept($path_arr[("x" . $arr['length'])]);
+      $datatypeprop = $datatypeprops[0];
+      drupal_set_message("done asking.");
+      if(empty($datatypeprop)) {
+        drupal_set_message("Warning: I could not detect a datatype property for path " . $arr['id'] . " with name " . $arr['name'], "error");
+      } else {
+        db_query("UPDATE {wisski_template} SET datatype_property = '" . $datatypeprop . "' WHERE id = " . $pathid);
+      }
+      $arr['datatype_property'] = $datatypeprop;
+    }
+  }    
  
   return $arr;     
 }
@@ -2554,9 +2596,10 @@ function wisski_pathbuilder_get_sparql($id, $conditions = "", $triplewise = FALS
     return "";
   }
   
-  $result = db_query("SELECT * FROM {wisski_template} WHERE id = " . $id);
-  $item = db_fetch_array($result);
-
+#  $result = db_query("SELECT * FROM {wisski_template} WHERE id = " . $id);
+#  $item = db_fetch_array($result);
+  $item = wisski_pathbuilder_getPathData($id);
+  
   if(!$item) {
     drupal_set_message("WisskiTemplate: Could not resolve path or group with id " . serialize($id) . " - there is no such id." . debug_backtrace(),"error");
     return "";
