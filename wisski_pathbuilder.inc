@@ -292,6 +292,9 @@ function wisski_pathbuilder_getAllMembers($groupid, $include_subgroups = FALSE) 
  * @author Mark Fichtner
  */
 function wisski_pathbuilder_getPathData($pathid) {
+  if(empty($pathid))
+    return array();
+
   $result = db_query("SELECT * FROM {wisski_template} WHERE id = '$pathid'");
     
   $arr = db_fetch_array($result);
