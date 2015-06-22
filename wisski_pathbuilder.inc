@@ -325,10 +325,10 @@ function wisski_pathbuilder_getPathData($pathid) {
 
     // fix the datatype property if it is wrong    
     if(empty($arr['datatype_property']) || wisski_store_getObj()->wisski_ARCAdapter_delNamespace("") == $arr['datatype_property']) {
-      drupal_set_message("I am asking. " . serialize($path_arr[("x" . $arr['length'])]));
+
       $datatypeprops = wisski_store_getObj()->wisski_ARCAdapter_getDatatypePropertiesForConcept($path_arr[("x" . $arr['length'])]);
       $datatypeprop = $datatypeprops[0];
-      drupal_set_message("done asking.");
+
       if(empty($datatypeprop)) {
         drupal_set_message("Warning: I could not detect a datatype property for path " . $arr['id'] . " with name " . $arr['name'], "error");
       } else {
