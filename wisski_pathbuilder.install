@@ -42,6 +42,10 @@ function wisski_pathbuilder_schema() {
       ),
     ), 
     'primary key' => array('uri'),
+    'indexes' => array(
+      'uri' => array('uri'),
+      'title' => array('title'),
+    ),
 
   );
 
@@ -74,6 +78,13 @@ function wisski_pathbuilder_schema() {
         'not null' => true,
         'description' => 'The weight of the field.',
       ),
+    ),
+    'indexes' => array(
+      'field_id' => array(array('field_id', 100)),
+      'title' => array(array('title', 100)),
+      'value' => array(array('value', 100)),
+      'weight' => array('weight'),
+#      'index-value-title' => array('value', array('title', 100)),
     ),
 
   );
