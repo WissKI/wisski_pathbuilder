@@ -2226,6 +2226,7 @@ function wisski_pathbuilder_path_view($form_state, $node) {
       $form['markup']['submit'] = array(
           '#type' => 'submit',
           '#value' => t('Save configuration'),
+#          '#submit' => array('wisski_pathbuilder_overview_form_submit'),
           );
 
       $form['markup']['add_group'] = array(
@@ -4588,35 +4589,52 @@ function _wisski_pathbuilder_get_autocomplete_data_field() {
   return $out;  
 }
 
+/**
+ * Add the menu parts to the create menu.
+ *
+ */
 function _wisski_pathbuilder_add_groups_to_menu() {
-
+  
+  // get the old ids from an internal variable
   $gotIDs = variable_get('wisski_pathbuilderMenuIDs', array());
 
+  // get all current group paths, which are main-groups (parent group is 0)
   $result = db_query("SELECT * FROM {wisski_template} WHERE is_group = 1 AND enabled = 1 AND group_id = 0");
 
+  // some temporary variables
   $ids = array();
   $data = array();
 
+  // go through the current group paths
   while($arr = db_fetch_array($result)) {
+    // and check them if they should be displayed internal
     if(($arr['type'] % 2) == 0) {
+      // if so, store their data
       $ids[] = $arr['id'];
       $data[] = $arr;
     }
   }  
   
+  // go through all old links
   foreach($gotIDs as $id => $itemid) {
-    $oldlinks[$itemid] = menu_link_load($id);
-    if(!in_array($itemid, $ids)) 
+    // if they are not in the current groups anymore, delete them
+    if(!in_array($itemid, $ids))
       menu_link_delete($id);
+    else // if they are, store the data
+      $oldlinks[$itemid] = menu_link_load($id);
   }
 
+  // get the node/add menu item from the navigation
   $result = db_query("SELECT mlid FROM {menu_links} WHERE link_path = 'node/add' && menu_name = 'navigation'");
 
+  // fetch it
   $arr = db_fetch_array($result);
 
+  // and store its mlid for further use
   $mlidIndividual = $arr['mlid'];
 
   $saveIDs = array();
+  // add all new data
   foreach($data as $arr) {
 
     $item = array();
@@ -4633,7 +4651,7 @@ function _wisski_pathbuilder_add_groups_to_menu() {
     $id = menu_link_save(&$item);       
     $saveIDs[$id] = $arr['id'];
   }
-
+  // save it
   variable_set('wisski_pathbuilderMenuIDs', $saveIDs);
   }
 
