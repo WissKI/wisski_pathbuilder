@@ -1459,7 +1459,7 @@ function wisski_pathbuilder_template_edit_submit($form, &$form_state) {
 }
 
 function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, $paths, $condition, $ov_pointer, $op_pointer, $main_subject = "", $parentpath = NULL, $parent_array = array(), &$main_subj_out = '') {
-  
+
   // if the group is a multi-group then the position in the array might not be correct anymore
   $path_mapping = array();
 
@@ -1480,7 +1480,9 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
   // by Martin: potential subject URI for auth handling when auth term at x0
   $pot_main_subject = NULL;
   if (!$main_subject) $pot_main_subject = wisski_store_getObj()->wisski_ARCAdapter_delNamespace(wisski_store_getObj()->wisski_Store_getNewUniqueID());
-      
+
+  // if we have a group disamb and the main subject is still empty we will
+  // try to get one      
   if($my_group['disamb'] != 0 && empty($main_subject)) {
     $disambid = $my_group['disamb'];
     $disambvalue = $fs_pointer[$groupid][$groupid][$disambid][$disambid];
@@ -1488,6 +1490,7 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
 
     $matches = wisski_store_getObj()->wisski_ARCAdapter_getStore()->query($sparql, 'rows');
     
+    // hopefully this holds!
     $main_subject = $matches[0]['x0'];
   }
 
@@ -1530,6 +1533,12 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
 #        $path_mapping[$v] = $v;
         continue;
       }
+      
+      // best guess - nothing happened?
+      if($paths[$v]['path'] == $path_to_analyze) {
+        $path_mapping[$v] = $v;
+        continue;
+      }
     
       // go through all paths and check if the old one is still there
       // the problem is that there are no paths and no old paths and it decides wrongly then below
@@ -1539,7 +1548,7 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
           $path_mapping[$p] = $v;
           
           $found = true;
-          continue;
+          break;
         }
       }
 
@@ -1598,10 +1607,23 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
          $title = wisski_store_getObj()->wisski_ARCAdapter_delNamespace($title);
       // save variant, but does not work by now
       //db_query("DELETE FROM {wisski_weight} WHERE field_id = '%s' AND value = '%s' AND title = '" . $title . "'", serialize($current_parent_array), mysql_real_escape_string($v));
- 
-      db_query("DELETE FROM {wisski_weight} WHERE value = '%s' AND title = '" . $title . "'", mysql_real_escape_string($v));
-      db_query("INSERT INTO {wisski_weight} (weight, title, field_id, value) VALUES ($weight, '" . $title . "', '%s', '" . mysql_real_escape_string($v) . "')", serialize($current_parent_array));
-
+      $weightresult = db_query("SELECT value, title FROM {wisski_weight} WHERE value = '%s' AND title = '" . $title . "'", mysql_real_escape_string($v));
+      
+      $row = db_fetch_array($weightresult);
+      
+      // there was nothing before... just insert
+      if(empty($row)) {
+        db_query("INSERT INTO {wisski_weight} (weight, title, field_id, value) VALUES ($weight, '" . $title . "', '%s', '" . mysql_real_escape_string($v) . "')", serialize($current_parent_array));
+      } else if($row['value'] == mysql_real_escape_string($v) && $row['title'] == $title) {
+        // nothing changed...
+      } else {
+        // in reality you would usually want to do an update. However we don't do
+        // this here, because it might be that something corrupted the table.
+        // so we delete everything and make exactly one new entry.
+        db_query("DELETE FROM {wisski_weight} WHERE value = '%s' AND title = '" . $title . "'", mysql_real_escape_string($v));
+        db_query("INSERT INTO {wisski_weight} (weight, title, field_id, value) VALUES ($weight, '" . $title . "', '%s', '" . mysql_real_escape_string($v) . "')", serialize($current_parent_array));
+      }
+      
       $groupweight = $weight;
     }  
     
@@ -2994,39 +3016,12 @@ global $user;
 }
 
 function wisski_pathbuilder_build_group_submit($form, &$form_state) {
-
+  
   $groupid = $form_state['values']['group'];
-
-/*
-  $triples = _wisski_pathbuilder_gen_triples_of_group($form, $form_state, $groupid);
-
-  $triple = $triples[0];
-
-  $mainsubject = $triple['s'];
-
-//  $form_state['redirect'] = $triple['s'];
-
-//  drupal_set_message(serialize($triples));
-
-//  drupal_set_message(serialize($form_state));
-
-  wisski_store_getObj()->wisski_ARCAdapter_getStore()->insert($triples, wisski_store_getObj()->wisski_ARCAdapter_graphName(), FALSE);
-
-  foreach($triples as $triple) {
-    if($triple['s'] != $mainsubject)
-      wisski_store_addNodeForTriple($triple);
-  }
-*/
 
   $result = db_query("SELECT * FROM {wisski_template} WHERE id = $groupid");
   $my_group = db_fetch_array($result);
   
-//  if($my_group['disamb'] != 0) {
-//    drupal_set_message(serialize($my_group));
-//  }
-
-//  drupal_set_message(serialize($form_state));
-
   $paths = array();
 
   $main_subj_out = FALSE;
@@ -3360,6 +3355,7 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
   drupal_add_js(drupal_get_path('module', 'wisski_pathbuilder') . '/wisski_pathbuilder.js');
   $vars = variable_get("wisski_pathbuilder_templateids", array());
 
+
   global $user;
 
   $resultgroup = db_query("SELECT * FROM {wisski_template} WHERE is_group = 1 AND enabled = 1 AND id = $parentID");
@@ -3400,6 +3396,7 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
   
   // get the paths for the group
   $grouppaths = $paths;
+
 
   if(isset($grouparr['id'])) {
     $wrapper = "";
@@ -3663,6 +3660,12 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
   }
   
 
+  // we didn't find any data for the group and we display data
+  // then we can savely stop here.
+  if(empty($multigroup) && $input == 0) {
+    return "";
+  }
+
   $iterator = 0;
   $wasHere = array();
   
@@ -3700,6 +3703,7 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
     $paths = &$savepaths[$grouparr['id'] . '_' . $multiit]['children'];  
     $current_parent_array[] = (string)($grouparr['id'] . '_' . $multiit);
   }
+  
   
   $resultfields = db_query("SELECT * FROM {wisski_template} WHERE enabled = 1 AND group_id = " . $parentID . " ORDER BY weight ASC");
   
@@ -4493,7 +4497,7 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
       }
     }
   } // end of while!
-  
+
 //  drupal_set_message(serialize($basestr));
   
   if($input == 0 && $elementbase) {
@@ -4539,7 +4543,7 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
   } // end of for - the multigroup-wrapper-generator
 
   ksort($basearr);
-  
+
   foreach($basearr as $weight => $value) {
     $basestr .= $value;
   }
