@@ -299,6 +299,14 @@ function wisski_pathbuilder_getPathData($pathid) {
     
   $arr = db_fetch_array($result);
   
+  // nothing came back? delete the menu links.
+  if(empty($arr)) {
+    menu_link_delete(NULL, "find/" . $pathid);
+    menu_link_delete(NULL, "navigate/" . $pathid);
+    return array();
+  }
+                    
+  
   // do some repairs to wrong paths
   $path_arr = unserialize($arr['path_array']);
 
