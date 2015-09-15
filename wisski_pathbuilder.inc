@@ -2202,7 +2202,7 @@ function _wisski_pathbuilder_generate_triples_of_path($form, $valuestr, $id, $su
 }
 
 function wisski_pathbuilder_template_view($form_state, $node, &$groupid = -1, $samepart = array()) {
-  
+    
   if($groupid == -1) {
     $groupid = wisski_pathbuilder_getGroupIDForIndividual(wisski_store_getObj()->wisski_ARCAdapter_delNamespace($node->title));
   }
@@ -2952,27 +2952,38 @@ function wisski_pathbuilder_get_sparql($id, $conditions = "", $triplewise = FALS
 function wisski_pathbuilder_build_group($form_state, $parentID, $treetype = array(2,3)) {
   global $base_path;
   module_load_include('inc', 'node', 'node.pages');
+
+  // look through what we've got via get
+  foreach($_GET as $key => $value) {
+    // url_decode the get parameters, because we send them encoded.
+    $to_add = urldecode($value);
+
+    // if the key is numeric it might be a pathnumber
+    if(is_numeric($key)) {
+      // initialize the iterator with the key
+      $iter = $key;
+      
+      // as long as there is something to iterate which is above zero 
+      // we are not at the top group 
+      while($iter > 0) {
+        // get the data for this gorup
+        $arr = wisski_pathbuilder_getPathData($iter);
+        // if it is a ontogroup it has to be added otherwise.
+        if($arr['fieldtype'] == "ontogroup")
+          $to_add = array($iter => array($iter . '' => array($iter . '_0' => $to_add)));
+        else
+          $to_add = array($iter => array($iter => $to_add));
+        // go to the group above
+        $iter = $arr['group_id'];
+      }
+      // merge the changes
+      if(!empty($form_state['values']))      
+        $form_state['values'] = array_merge($form_state['values'], $to_add);
+      else
+        $form_state['values'] = $to_add;
+    }
+  }
   
-  //$node = new stdclass(); 
-  //$tmp = wisski_form($node, $form_state);
-
-  
-  //$tmp = module_invoke_all('form', $form_state);
-
-  //drupal_set_message(serialize("I'm here!"));
-
-/*
-  unset($tmp['buttons']);
-  unset($tmp['#validate']);
-  unset($tmp['#theme']);
-  unset($tmp['#id']);
-  unset($tmp['nid']);
-  unset($tmp['vid']);
-  unset($tmp['uid']);
-  unset($tmp['type']);
-  unset($tmp['title']);
-  unset($tmp['#node']);
-*/
   $paths = array();
   
   if(!empty($form_state['values']))
