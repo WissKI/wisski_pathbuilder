@@ -165,13 +165,23 @@ function wisski_pathbuilder_menu() {
   $items['admin/settings/wisski/pathbuilder'] = array(
     'title' => t('Pathbuilder'),
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('wisski_pathbuilder_overview_form', 'Pathbuilder'),
+    'page arguments' => array('wisski_pathbuilder_overview_form', 'Pathbuilder', 1),
     'access arguments' => array('wisski administrate page'),
     'type' => MENU_LOCAL_TASK,
     'file' => 'wisski_pathbuilder.inc',
     'weight' => 2,
   );
   
+  $items['admin/settings/wisski/pathbuilder/1/'] = array(
+    'title' => t('All'),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('wisski_pathbuilder_overview_form', 'Pathbuilder', 1),
+    'access arguments' => array('wisski administrate page'),
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'file' => 'wisski_pathbuilder.inc',
+    'weight' => 1,
+  );
+
   include_once(dirname(__FILE__) . '/wisski_pathbuilder.inc');
   
   foreach(wisski_pathbuilder_getPathbuilderTrees() as $key => $elemname) {  
@@ -185,8 +195,8 @@ function wisski_pathbuilder_menu() {
       'file' => 'wisski_pathbuilder.inc',
       'weight' => 2,
     );
-    if($key == 2)
-      $items['admin/settings/wisski/pathbuilder/'.$key.'/']['type'] = MENU_DEFAULT_LOCAL_TASK;
+#    if($key == 2)
+#      $items['admin/settings/wisski/pathbuilder/'.$key.'/']['type'] = MENU_DEFAULT_LOCAL_TASK;
   }
   
   return $items;

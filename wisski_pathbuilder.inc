@@ -422,8 +422,11 @@ function wisski_pathbuilder_getOptionArray($pathid, $arg2 = FALSE) {
     $group_id = $auth->group_id;
     $group_path = _wisski_pathbuilder_calculate_group_samepart($group_id);
     $concept = $group_path['x0'];
-
-    if($key = array_search($concept, $path_array)) {
+    
+    
+    $matched_keys = array_keys($path_array, $concept);
+    foreach ($matched_keys as $key) {
+#    if($key = array_search($concept, $path_array)) {
       $key = substr($key, 1);
       if($key >= $min_x) {
         $sortauths[$key][] = $auth;
@@ -5039,8 +5042,8 @@ function wisski_pathbuilder_edit_item(&$form_state, $type, $item, $menu) {
       '#default_value' => $types,
 
       '#type' => 'checkboxes',
-      '#options' => array(2 => "internal display", 3 => "import", 
-        5 => "export", 7 => "Find"),
+      '#options' => array(2 => "Internal display", 3 => "Import", 
+        5 => "Export", 7 => "Find"),
       '#title' => 'This path or group is used for',
       );
 
