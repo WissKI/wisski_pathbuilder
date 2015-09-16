@@ -2240,7 +2240,7 @@ function wisski_pathbuilder_path_view($form_state, $node) {
    * relevant operations.
    */
 
-  function wisski_pathbuilder_overview_form(&$form_state, $menu, $type = 2) {
+  function wisski_pathbuilder_overview_form(&$form_state, $menu, $type = 1) {
 
     global $menu_admin;
 
