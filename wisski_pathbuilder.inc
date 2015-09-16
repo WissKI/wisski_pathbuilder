@@ -237,7 +237,7 @@ function wisski_pathbuilder_getMembers($groupid, $include_subgroups = FALSE) {
  * @return The ids of all paths that are in the given group.
  * @author Mark Fichtner
  */
-function wisski_pathbuilder_getEnabledInternaMembers($groupid, $include_subgroups = FALSE, $expand_subgroups = FALSE) {
+function wisski_pathbuilder_getEnabledInternaMembers($groupid, $include_subgroups = FALSE, $expand_subgroups = FALSE, $type = 1) {
   $query = "SELECT * FROM {wisski_template} WHERE enabled = 1 AND " .
     (($include_subgroups) ? "" : "is_group = 0 AND ") . "group_id = '$groupid'";
   $query .= " ORDER BY weight ASC";
@@ -245,12 +245,12 @@ function wisski_pathbuilder_getEnabledInternaMembers($groupid, $include_subgroup
   $memberids = array();
   
   while($arr = db_fetch_array($result)) {
-    if( ($arr["type"] % 2) == 0)
+    if( ($arr["type"] % $type) == 0)
       if($expand_subgroups == FALSE)
         $memberids[] = $arr["id"];
       else {
         if($arr['is_group'] == 1)
-          $memberids = array_merge($memberids, wisski_pathbuilder_getEnabledInternaMembers($arr['id'], $include_subgroups, $expand_subgroups));
+          $memberids = array_merge($memberids, wisski_pathbuilder_getEnabledInternaMembers($arr['id'], $include_subgroups, $expand_subgroups, $type));
         else
           $memberids[] = $arr["id"];
       }    
