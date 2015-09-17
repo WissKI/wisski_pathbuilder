@@ -382,10 +382,10 @@ function wisski_pathbuilder_saveToDB($path_array, $length, $name, $description, 
     $uuid = wisski_get_uid();
   }
   db_query("INSERT INTO {wisski_template} 
-  (uuid, path_array, length, name, description, group_id, weight, is_group, fieldtype, enabled, mandatory, repeatable, type) 
+  (uuid, path_array, length, name, description, group_id, weight, is_group, fieldtype, enabled, mandatory, repeatable, type, autocomplete, collapsed) 
   VALUES 
   ('%s', '%s', %d, '%s', '%s', %d, %d, %d, '%s', %d, %d, %d, %d)", 
-  $uuid, $path_array, $length, $name, $description, $groupid, $weight, $isgroup, $fieldtype, $enabled, $mandatory, $repeatable, $type);
+  $uuid, $path_array, $length, $name, $description, $groupid, $weight, $isgroup, $fieldtype, $enabled, $mandatory, $repeatable, $type, 1, 0);
 
 }
 
@@ -1640,6 +1640,15 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
     
     $current_parent_array[] = (string)$v;
 
+    $groupcondition = "";
+    // d.h. die Gruppe gabs schon
+    if(!empty($paths[$v]['path'])) {
+      $data = $paths[$v]['path'];
+      $groupcondition = ('. FILTER ( ?x' . floor(count($data)/2) . ' = <' . $data['x' . floor(count($data)/2)] . '> ) ');
+    }
+                                
+
+
     // go through all fields
     while($row = db_fetch_array($result)) {
       $fs = $storefs;
@@ -1754,7 +1763,7 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
               if(!drupal_validate_utf8($local_value))
                 $local_value = utf8_encode($local_value);
 
-              $delete .= $condition . '. FILTER ( STR(?out) = "' . wisski_store_escape_sparql_literal($local_value) . '" ) }';
+              $delete .= $condition . $groupcondition . '. FILTER ( STR(?out) = "' . wisski_store_escape_sparql_literal($local_value) . '" ) }';
               
               wisski_store_getObj()->wisski_ARCAdapter_getStore()->query($delete);
             }
@@ -1806,7 +1815,7 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
 #              $delete .= $condition . '. FILTER ( ?out = "' . wisski_store_escape_sparql_literal($value) . '" ) }';
 #            }
 
-            $delete .= $condition . '. FILTER ( STR(?out) = "' . wisski_store_escape_sparql_literal($value) . '" ) }';                        
+            $delete .= $condition . $groupcondition . '. FILTER ( STR(?out) = "' . wisski_store_escape_sparql_literal($value) . '" ) }';                        
 
             wisski_store_getObj()->wisski_ARCAdapter_getStore()->query($delete);
           }
