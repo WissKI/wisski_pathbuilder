@@ -384,7 +384,7 @@ function wisski_pathbuilder_saveToDB($path_array, $length, $name, $description, 
   db_query("INSERT INTO {wisski_template} 
   (uuid, path_array, length, name, description, group_id, weight, is_group, fieldtype, enabled, mandatory, repeatable, type, autocomplete, collapsed) 
   VALUES 
-  ('%s', '%s', %d, '%s', '%s', %d, %d, %d, '%s', %d, %d, %d, %d)", 
+  ('%s', '%s', %d, '%s', '%s', %d, %d, %d, '%s', %d, %d, %d, %d, %d, %d)", 
   $uuid, $path_array, $length, $name, $description, $groupid, $weight, $isgroup, $fieldtype, $enabled, $mandatory, $repeatable, $type, 1, 0);
 
 }
