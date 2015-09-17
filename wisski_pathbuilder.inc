@@ -4396,6 +4396,8 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
             $elementwrap .= '<div class="wki-data-item"><div class="wki-data-label">' . check_plain($arr['name']) . '</div>';
             $elements = "";
             foreach($out['result']['rows'] as $result1) {
+              if (isset($row_information['prefix']) && $row_information['prefix']) $elements .= $row_information['prefix'];
+              
               if($arr['disamb'] > 0) {
                 $groupids = wisski_pathbuilder_getInternaGroupsForConcept($result1[('x' . ($arr['disamb']-1))]);
                 if($groupids && count($groupids) > 0) {
@@ -4406,6 +4408,8 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
               } else {
                 $elements .= '<div class="wki-data-value">' . check_plain($result1['out']) . '</div>';
               }
+              if (isset($row_information['suffix']) && $row_information['suffix']) $elements .= $row_information['suffix'];
+            
             }
 
             if($elements != "")
@@ -4449,6 +4453,8 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
               //drupal_set_message("asked for: " . htmlentities("SELECT weight FROM {wisski_weight} WHERE title = '" . $title . "' AND field_id = '". serialize($my_parent_array) . "'"));
               //drupal_set_message("value: " . $out['result']['rows'][$tmpi]['out'] . " weight: " . $weight);
 
+              if (isset($row_information['prefix']) && $row_information['prefix']) $order_by_weight[$weight] .= $row_information['prefix'];
+
               if($arr['disamb'] > 0) {
                 if($out['result']['rows'][$tmpi]['out']) {
                   $groupids = wisski_pathbuilder_getInternaGroupsForConcept($out['result']['rows'][$tmpi][('x' . ($arr['disamb']-1))]);
@@ -4460,6 +4466,7 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
               } else {
                 $order_by_weight[$weight] .= '<div class="wki-data-value">' . check_plain($out['result']['rows'][$tmpi]['out']) . '</div>';
               }
+              if (isset($row_information['suffix']) && $row_information['suffix']) $order_by_weight[$weight] .= $row_information['suffix'];
               $def[$arr['id'] . '_' . $tmpi] = $tmpVal[$arr['id'] . '_' . $tmpi]['#default_value']; 
             }
 
@@ -4491,6 +4498,7 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
             $result = check_markup($result, 1);
             $result = preg_replace('/\<p\>(.*)\<\/p\>/s', '$1', $result);
           }
+          if (isset($row_information['prefix']) && $row_information['prefix']) $elements .= $row_information['prefix'];
           
           if($arr['disamb'] > 0) {
             if($resultarr[('x' . ($arr['disamb']-1))]) {
@@ -4508,6 +4516,7 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
             if($result)
               $elements .= '<div class="wki-data-item"><div class="wki-data-label">' . check_plain($arr['name']) . '</div>' . '<div class="wki-data-value">' . $result . '</div></div>';
           }
+          if (isset($row_information['suffix']) && $row_information['suffix']) $elements .= $row_information['suffix'];
         }
       
       }
