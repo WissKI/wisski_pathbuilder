@@ -2870,7 +2870,7 @@ function wisski_pathbuilder_get_sparql($id, $conditions = "", $triplewise = FALS
 
   function _wisski_pathbuilder_make_recursive_form(&$form, $thread_id, $type = 1) {
 
-    $result = db_query("SELECT DISTINCT * FROM {wisski_template} WHERE group_id = " . $thread_id . " ORDER BY weight ASC");//ORDER BY concept_in ASC');
+    $result = db_query("SELECT DISTINCT * FROM {wisski_template} WHERE group_id = " . $thread_id . " AND type % $type = 0 ORDER BY weight ASC");//ORDER BY concept_in ASC');
 
     while($concept = db_fetch_array($result)) {
       if(($concept['type'] % $type))
@@ -2928,7 +2928,7 @@ function wisski_pathbuilder_get_sparql($id, $conditions = "", $triplewise = FALS
       $item["enabled"]["#default_value"] = $concept["enabled"];
       $item['weight'] = array(
           '#type' => 'weight',
-          '#delta' => 50,
+          '#delta' => 255,
           '#default_value' => $concept['weight'], 
           );
 
