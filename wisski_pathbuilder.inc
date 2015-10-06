@@ -2847,9 +2847,9 @@ function wisski_pathbuilder_get_sparql($id, $conditions = "", $triplewise = FALS
     $item["#item"]["enabled"] = 1;
     $item["enabled"]["#default_value"] = 1;
     $item['weight'] = array(
-        '#type' => 'weight',
-        '#delta' => 50,
-        '#default_value' => 0,
+        '#type' => 'textfield',
+#        '#delta' => 50,
+        '#default_value' => -101,
         );
 
     $item['plid'] = array(
@@ -2936,8 +2936,8 @@ function wisski_pathbuilder_get_sparql($id, $conditions = "", $triplewise = FALS
       $item["#item"]["enabled"] = $concept["enabled"];
       $item["enabled"]["#default_value"] = $concept["enabled"];
       $item['weight'] = array(
-          '#type' => 'weight',
-          '#delta' => 255,
+          '#type' => 'textfield',
+#          '#delta' => 255,
           '#default_value' => $concept['weight'], 
           );
 
@@ -3886,12 +3886,13 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
               // construct a weight-field              
               $tmpVal[$arr['id'] . '_' . $tmpi]['#weight'] = $weight;
               $tmpVal['weight_' . $arr['id'] . '_' . $tmpi ] = array(
-                '#type' => 'weight',
+                #'#type' => 'weight',
+                '#type' => 'textfield',
                 '#title' => t('Weight'),
                 '#weight' => $weight,
                 '#attributes' => array('class' => 'wki-weight-' . $uuid),
                 '#default_value' => $tmpVal[$arr['id'] . '_' . $tmpi]['#weight'],
-                '#delta' => 10,
+                #'#delta' => 10,
 //                '#description' => t('Optional. In the menu, the heavier items will sink and the lighter items will be positioned nearer the top.')
               );
 
@@ -4793,7 +4794,7 @@ function _wisski_pathbuilder_add_groups_to_menu() {
     if(count($form_state['storage']['wisski_pathbuilder_path']) > 0) {
       $max = floor(count($form_state['storage']['wisski_pathbuilder_path'])/2);
 
-      wisski_pathbuilder_saveToDB(serialize($form_state['storage']['wisski_pathbuilder_path']), $max, $form_state['values']['item']['name'], "", 0, -101, 0, "textfield", 0, 0, 1, $type);
+      wisski_pathbuilder_saveToDB(serialize($form_state['storage']['wisski_pathbuilder_path']), $max, $form_state['values']['item']['name'], "", 0, -256, 0, "textfield", 0, 0, 1, $type);
     }
     unset($form_state['storage']);
     if($type == 2)
