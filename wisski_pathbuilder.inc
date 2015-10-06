@@ -2842,7 +2842,7 @@ function wisski_pathbuilder_get_sparql($id, $conditions = "", $triplewise = FALS
     $item["#item"]["href"] = "Ungrouped";
     $item["title"]["#value"] = t("Ungrouped");
 
-    $item["#item"]["weight"] = -50;
+    $item["#item"]["weight"] = -101;
 
     $item["#item"]["enabled"] = 1;
     $item["enabled"]["#default_value"] = 1;
@@ -2906,6 +2906,10 @@ function wisski_pathbuilder_get_sparql($id, $conditions = "", $triplewise = FALS
           $titel .= wisski_store_getObj()->wisski_ARCAdapter_addNamespace($conorprop);
         }
         $titel .= "]";
+        
+        if($concept['disamb'] > 0)
+          $titel .=  ' <font color = "red">Disamb: ' . $concept['disamb'] . '</font>';
+          
       } else {
         $item["plid"]["#default_value"] = $concept["group_id"];
 
@@ -2915,8 +2919,13 @@ function wisski_pathbuilder_get_sparql($id, $conditions = "", $triplewise = FALS
         foreach(unserialize($concept["path_array"]) as $conorprop) {
           if($ab > 0) 
             $titel .= " -> ";
+          
+          if($concept['disamb'] > 0 && $ab/2 == $concept['disamb'] -1 )
+            $titel .= '<font color = "red">' . wisski_store_getObj()->wisski_ARCAdapter_addNamespace($conorprop) . '</font>';
+          else
+            $titel .= wisski_store_getObj()->wisski_ARCAdapter_addNamespace($conorprop);
+        
           $ab++;
-          $titel .= wisski_store_getObj()->wisski_ARCAdapter_addNamespace($conorprop);
         }
       }    
 
@@ -4784,7 +4793,7 @@ function _wisski_pathbuilder_add_groups_to_menu() {
     if(count($form_state['storage']['wisski_pathbuilder_path']) > 0) {
       $max = floor(count($form_state['storage']['wisski_pathbuilder_path'])/2);
 
-      wisski_pathbuilder_saveToDB(serialize($form_state['storage']['wisski_pathbuilder_path']), $max, $form_state['values']['item']['name'], "", 0, -51, 0, "textfield", 0, 0, 1, $type);
+      wisski_pathbuilder_saveToDB(serialize($form_state['storage']['wisski_pathbuilder_path']), $max, $form_state['values']['item']['name'], "", 0, -101, 0, "textfield", 0, 0, 1, $type);
     }
     unset($form_state['storage']);
     if($type == 2)
