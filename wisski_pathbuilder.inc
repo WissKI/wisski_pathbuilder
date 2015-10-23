@@ -4228,6 +4228,7 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
                   '#src' => 'sites/all/themes/blendedmalts/pics/ico_del.png',
                   '#attributes' => array('class' => 'wki-button-undupl wisski_undupl_single', 
                   'alt' => t('unduplicate path with id ' . $arr['id'])),
+                  '#weight' => $weight,
                //   '#parents' => $myparents,
                   '#submit' => array('wisski_pathbuilder_undupl_submit'),
                   '#ahah' => array(
