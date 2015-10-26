@@ -611,6 +611,20 @@ function theme_wisski_pathbuilder_dragtable($element) {
 
         unset($xml->input[$i]);        
       }
+    }
+
+    for($i = count($xml->button)-1; $i>=0; $i--) {
+      $buttonxml = $xml->button[$i]->asXML();
+             
+      if(strpos($buttonxml, '-cls-button-') !== FALSE) {
+        array_unshift($clsbutton, $buttonxml);
+                            
+        unset($xml->button[$i]);
+      } else if(strpos($buttonxml, '-undupl-button-') !== FALSE) {
+        array_unshift($unduplbutton, $buttonxml);
+                                                  
+        unset($xml->button[$i]);
+      }
       
 
     }
@@ -1082,7 +1096,7 @@ function wisski_pathbuilder_pb_changesettings($fieldtype, $id, $preset) {
     $my_preset['#autocomplete_path'] = ('wisski_pathbuilder/autocomplete/' . $id);
     $my_preset['#maxlength'] = 2000;
   }
-
+  
   if(!empty($row_information['additional_options']) && is_array($row_information['additional_options']) ) {
     foreach($row_information['additional_options'] as $key => $value) {
       $my_preset[$key] = $value;
