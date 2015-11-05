@@ -402,154 +402,157 @@ function wisski_pathbuilder_getOptionArray($pathid, $arg2 = FALSE) {
   drupal_add_js( 'sites/all/modules/wisski_pathbuilder/wisski_pathbuilder.js');
 
   $out = array();
-  $data = wisski_pathbuilder_getPathData($pathid);
-  $path_array = unserialize($data['path_array']);
-  $pgroup_path = _wisski_pathbuilder_calculate_group_samepart($data['group_id']);
-  $min_x = (count($pgroup_path) - 1) / 2; // common path of containing group plus one concept
-  $min_x = max($data['disamb'] - 1, $min_x);
-
-  if (module_exists('wisski_vocab_ctrl')) {
-    drupal_load('module', 'wisski_vocab_ctrl');
-    $auths = wisski_vocab_ctrl_get();
-  } else {
-    $auths = array();
-  }
-  $sortauths = array();
   
-  foreach($auths as $auth) {
-    if($auth->accesspoint->type == "local") continue;
-
-    $group_id = $auth->group_id;
-    $group_path = _wisski_pathbuilder_calculate_group_samepart($group_id);
-    $concept = $group_path['x0'];
+  if ($arg2 !== FALSE) {
+    $data = wisski_pathbuilder_getPathData($pathid);
+    $path_array = unserialize($data['path_array']);
+    $pgroup_path = _wisski_pathbuilder_calculate_group_samepart($data['group_id']);
+    $min_x = (count($pgroup_path) - 1) / 2; // common path of containing group plus one concept
+    $min_x = max($data['disamb'] - 1, $min_x);
+  
+    if (module_exists('wisski_vocab_ctrl')) {
+      drupal_load('module', 'wisski_vocab_ctrl');
+      $auths = wisski_vocab_ctrl_get();
+    } else {
+      $auths = array();
+    }
+    $sortauths = array();
     
-    
-    $matched_keys = array_keys($path_array, $concept);
-    foreach ($matched_keys as $key) {
-#    if($key = array_search($concept, $path_array)) {
-      $key = substr($key, 1);
-      if($key >= $min_x) {
-        $sortauths[$key][] = $auth;
-      } 
+    foreach($auths as $auth) {
+      if($auth->accesspoint->type == "local") continue;
+  
+      $group_id = $auth->group_id;
+      $group_path = _wisski_pathbuilder_calculate_group_samepart($group_id);
+      $concept = $group_path['x0'];
+      
+      
+      $matched_keys = array_keys($path_array, $concept);
+      foreach ($matched_keys as $key) {
+  #    if($key = array_search($concept, $path_array)) {
+        $key = substr($key, 1);
+        if($key >= $min_x) {
+          $sortauths[$key][] = $auth;
+        } 
+      }
+      
     }
     
-  }
+    $h_split = explode('|', $arg2, 2);
+    if (isset($h_split[1]) && trim($h_split[0])) {
+      $h_term = trim($h_split[0]);
+      $h_part = trim($h_split[1]);
+    } else {
+      $h_term = NULL;
+    }
   
-  $h_split = explode('|', $arg2, 2);
-  if (isset($h_split[1]) && trim($h_split[0])) {
-    $h_term = trim($h_split[0]);
-    $h_part = trim($h_split[1]);
-  } else {
-    $h_term = NULL;
-  }
-
-  $limit = 15;
-  $offset = 0;
-
-//  drupal_set_message(serialize($sortauths));
-//  return;
-
-  krsort($sortauths);
+    $limit = 15;
+    $offset = 0;
   
-  foreach ($sortauths as $k => $auths) {
-
-      foreach($auths as $auth) {
-        
-        $local_limit = $limit - count($out);
-        if ($h_term) {
-          $uris = wisski_vocab_ctrl_lookup('labels', $auth, NULL, $h_term, $local_limit, $offset, 'exact', 'normal', TRUE);
-        } else {
-            // viel schneller
-            !$uris = wisski_vocab_ctrl_lookup('labels', $auth, NULL, $arg2, $local_limit, $offset, 'starts', 'normal', TRUE);
- //         $uris = wisski_vocab_ctrl_lookup('labels', $auth, NULL, $arg2, $local_limit, $offset, 'contains');
-        }
-//return;        
-        if (!$uris) {
-          continue;
-        }
-
-        foreach($uris as $individual => $labels) {
+  //  drupal_set_message(serialize($sortauths));
+  //  return;
+  
+    krsort($sortauths);
+    
+    foreach ($sortauths as $k => $auths) {
+  
+        foreach($auths as $auth) {
           
-          // if the auth individual would be the main instance of the form (?x0)
-          // we have to make sure already imported indivs are not shown.
-          if ($k == 0 && wisski_vocab_ctrl_get_local_uri($individual)) {
-            continue;
-          } 
-
-          $preflabel = NULL;
-          $altlabel = NULL;
-          if (isset($labels['label'])) {
-            $label = $labels['label'][0]['value'];
-            if (isset($labels['alt_label'])) {
-              $altlabel = $labels['alt_label'][0]['value'];
-            } else {
-              $l_array = wisski_vocab_ctrl_lookup('alt_label', $auth, $individual, NULL, NULL, NULL, 'exact', 'normal', TRUE);
-              if (!empty($l_array) && isset($l_array[$individual])) {
-                $altlabel = $l_array[$individual]['alt_label'][0]['value'];
-              }
-            }
-
-          } elseif (isset($labels['alt_label'])) {
-            $label = $labels['alt_label'][0]['value'];
-            $l_array = wisski_vocab_ctrl_lookup('label', $auth, $individual, NULL, NULL, NULL, 'exact', 'normal', TRUE);
-            if (!empty($l_array) && isset($l_array[$individual])) {
-              $preflabel = $l_array[$individual]['label'][0]['value'];
-            }
-          } else {
-            $ks = array_keys($labels);
-            $label = $labels[$ks[0]][0]['value'];
-          }
-
-          $broaders_array = wisski_vocab_ctrl_lookup('broader_labels', $auth, $individual, NULL, NULL, NULL, 'exact', 'normal', TRUE);
-          if ($broaders_array) $broaders = join(', ', $broaders_array[$individual]['broader_labels']);
-          
+          $local_limit = $limit - count($out);
           if ($h_term) {
-            $newlabel = '';
-            foreach ($broaders_array[$individual]['broader_labels'] as $b) {
-              if (mb_strpos(mb_strtolower($b), mb_strtolower($h_part)) !== FALSE) {
-                $newlabel = $label . ', ' . $b;
-                break;
+            $uris = wisski_vocab_ctrl_lookup('labels', $auth, NULL, $h_term, $local_limit, $offset, 'exact', 'normal', TRUE);
+          } else {
+              // viel schneller
+              !$uris = wisski_vocab_ctrl_lookup('labels', $auth, NULL, $arg2, $local_limit, $offset, 'starts', 'normal', TRUE);
+   //         $uris = wisski_vocab_ctrl_lookup('labels', $auth, NULL, $arg2, $local_limit, $offset, 'contains');
+          }
+  //return;        
+          if (!$uris) {
+            continue;
+          }
+  
+          foreach($uris as $individual => $labels) {
+            
+            // if the auth individual would be the main instance of the form (?x0)
+            // we have to make sure already imported indivs are not shown.
+            if ($k == 0 && wisski_vocab_ctrl_get_local_uri($individual)) {
+              continue;
+            } 
+  
+            $preflabel = NULL;
+            $altlabel = NULL;
+            if (isset($labels['label'])) {
+              $label = $labels['label'][0]['value'];
+              if (isset($labels['alt_label'])) {
+                $altlabel = $labels['alt_label'][0]['value'];
+              } else {
+                $l_array = wisski_vocab_ctrl_lookup('alt_label', $auth, $individual, NULL, NULL, NULL, 'exact', 'normal', TRUE);
+                if (!empty($l_array) && isset($l_array[$individual])) {
+                  $altlabel = $l_array[$individual]['alt_label'][0]['value'];
+                }
+              }
+  
+            } elseif (isset($labels['alt_label'])) {
+              $label = $labels['alt_label'][0]['value'];
+              $l_array = wisski_vocab_ctrl_lookup('label', $auth, $individual, NULL, NULL, NULL, 'exact', 'normal', TRUE);
+              if (!empty($l_array) && isset($l_array[$individual])) {
+                $preflabel = $l_array[$individual]['label'][0]['value'];
+              }
+            } else {
+              $ks = array_keys($labels);
+              $label = $labels[$ks[0]][0]['value'];
+            }
+  
+            $broaders_array = wisski_vocab_ctrl_lookup('broader_labels', $auth, $individual, NULL, NULL, NULL, 'exact', 'normal', TRUE);
+            if ($broaders_array) $broaders = join(', ', $broaders_array[$individual]['broader_labels']);
+            
+            if ($h_term) {
+              $newlabel = '';
+              foreach ($broaders_array[$individual]['broader_labels'] as $b) {
+                if (mb_strpos(mb_strtolower($b), mb_strtolower($h_part)) !== FALSE) {
+                  $newlabel = $label . ', ' . $b;
+                  break;
+                }
+              }
+              if (!$newlabel) {
+                continue; // a hierarchy part is given and it does not match!
+              } else {
+                $label = $newlabel;
               }
             }
-            if (!$newlabel) {
-              continue; // a hierarchy part is given and it does not match!
+            
+            $addedlabel = ($preflabel !== NULL) ? check_plain($preflabel) : (($altlabel !== NULL) ? check_plain($altlabel) : '');
+            if (!empty($addedlabel)) $addedlabel = t(' (!l)', array('!l' => $addedlabel));
+  
+            if ($h_term && ($a = mb_strpos(mb_strtolower($label), mb_strtolower($h_term))) !== FALSE) {
+              $l = mb_strlen($h_term);
+              $ap = mb_strpos(mb_strtolower($label), mb_strtolower($h_part));
+              $lp = mb_strlen($h_part);
+              $termout = check_plain(mb_substr($label, 0, $a)) . '<strong>' . check_plain(mb_substr($label, $a, $l)) . '</strong>' . check_plain(mb_substr($label, $a + $l, $ap - $a - $l)) . '<strong>' .check_plain( mb_substr($label, $ap, $lp)) . '</strong>' . check_plain(mb_substr($label, $ap + $lp));
+            }elseif ($arg2 && ($a = mb_strpos(mb_strtolower($label), mb_strtolower($arg2))) !== FALSE) {
+              $e = $a + mb_strlen($arg2);
+              $termout = check_plain(mb_substr($label, 0, $a)) . '<strong>' . check_plain(mb_substr($label, $a, $e - $a)) . '</strong>' . check_plain(mb_substr($label, $e));
             } else {
-              $label = $newlabel;
+              $termout = check_plain($label);
+            }
+  
+            $outlabel  = '';
+            if ($arg2) $outlabel .= '<span title="' . check_plain($label) . ' -- ' . t('from') . ' ' . check_plain($auth->name) . (($broaders) ? check_plain(" ($broaders)") : "") . '">';
+            $outlabel .= $termout . $addedlabel . ' -- ' . t('from') . ' ' . check_plain($auth->name) . (($broaders) ? check_plain(" ($broaders)") : "");
+            if ($arg2) $outlabel .= '</span>';
+            $out['[vid:'. $auth->vid . '] [ind:' . $individual . '] [x:' . $k . '] ' . $label] = $outlabel;
+          
+            if(count($out) >= $limit) {
+              break;
             }
           }
-          
-          $addedlabel = ($preflabel !== NULL) ? check_plain($preflabel) : (($altlabel !== NULL) ? check_plain($altlabel) : '');
-          if (!empty($addedlabel)) $addedlabel = t(' (!l)', array('!l' => $addedlabel));
-
-          if ($h_term && ($a = mb_strpos(mb_strtolower($label), mb_strtolower($h_term))) !== FALSE) {
-            $l = mb_strlen($h_term);
-            $ap = mb_strpos(mb_strtolower($label), mb_strtolower($h_part));
-            $lp = mb_strlen($h_part);
-            $termout = check_plain(mb_substr($label, 0, $a)) . '<strong>' . check_plain(mb_substr($label, $a, $l)) . '</strong>' . check_plain(mb_substr($label, $a + $l, $ap - $a - $l)) . '<strong>' .check_plain( mb_substr($label, $ap, $lp)) . '</strong>' . check_plain(mb_substr($label, $ap + $lp));
-          }elseif ($arg2 && ($a = mb_strpos(mb_strtolower($label), mb_strtolower($arg2))) !== FALSE) {
-            $e = $a + mb_strlen($arg2);
-            $termout = check_plain(mb_substr($label, 0, $a)) . '<strong>' . check_plain(mb_substr($label, $a, $e - $a)) . '</strong>' . check_plain(mb_substr($label, $e));
-          } else {
-            $termout = check_plain($label);
-          }
-
-          $outlabel  = '';
-          if ($arg2) $outlabel .= '<span title="' . check_plain($label) . ' -- ' . t('from') . ' ' . check_plain($auth->name) . (($broaders) ? check_plain(" ($broaders)") : "") . '">';
-          $outlabel .= $termout . $addedlabel . ' -- ' . t('from') . ' ' . check_plain($auth->name) . (($broaders) ? check_plain(" ($broaders)") : "");
-          if ($arg2) $outlabel .= '</span>';
-          $out['[vid:'. $auth->vid . '] [ind:' . $individual . '] [x:' . $k . '] ' . $label] = $outlabel;
-        
-          if(count($out) >= $limit) {
-            break;
-          }
-        }
+      }
+  
+      if(count($out) >= $limit) {
+        break;
+      }
+  
     }
-
-    if(count($out) >= $limit) {
-      break;
-    }
-
-  }
+  } 
 
   if(empty($out)) {
     $result = db_query("SELECT * FROM {wisski_template} WHERE id = $pathid");
