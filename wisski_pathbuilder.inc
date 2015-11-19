@@ -1667,7 +1667,24 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
         
         
         if(empty($path_mapping[$v])) { // there was nothing before
-          $got_triples = array_merge($got_triples, wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer[$v], $row['id'], $paths[$v]['children'], $condition, $ov_pointer[$v], $op_pointer[$v]['children'], $main_subject, empty($paths[$v]['path']) ? $parentpath : $paths[$v]['path'], $current_parent_array));
+          $got_triples = array_merge($got_triples, wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer[$v], $row['id'], $paths[$v]['children'], $condition . $groupcondition, $ov_pointer[$v], $op_pointer[$v]['children'], $main_subject, empty($paths[$v]['path']) ? $parentpath : $paths[$v]['path'], $current_parent_array));
+
+          // we have to adjust the condition here in case there are fields
+          // which created the group condition
+
+          if(!empty($got_triples)) {
+            if(empty($main_subject)) {
+              $main_subject = $got_triples[0]['s'];
+              if(empty($condition))
+                $condition = "FILTER ( ?x0 = <" . $main_subject . ">)";
+            }
+            $data = wisski_pathbuilder_get_group_samepart_data($groupid, $main_subject);
+
+            $paths[$v]['path'] = $data;
+
+#            $groupcondition .= ('. FILTER ( ?x' . floor(count($data)/2) . ' = <' . $data['x' . floor(count($data)/2)] . '> ) ');
+          }
+
         } else {// there was something before.
         
           // get the path for the condition
@@ -1688,8 +1705,8 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
             if(strpos($tmp_condition, $new_cond) === FALSE)
               $tmp_condition .= " . " . $new_cond;
           }
-                
-          $got_triples = array_merge($got_triples, wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer[$v], $row['id'], $paths[$v]['children'], $condition, $ov_pointer[$path_mapping[$v]], $op_pointer[$path_mapping[$v]]['children'], $main_subject, empty($paths[$v]['path']) ? $parentpath : $paths[$v]['path'], $current_parent_array));
+
+          $got_triples = array_merge($got_triples, wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer[$v], $row['id'], $paths[$v]['children'], $tmp_condition, $ov_pointer[$path_mapping[$v]], $op_pointer[$path_mapping[$v]]['children'], $main_subject, empty($paths[$v]['path']) ? $parentpath : $paths[$v]['path'], $current_parent_array));
         }
                 
         // if we have no main subject up to now, we might get one from the group
@@ -2018,7 +2035,6 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
               
             
             }
-            
             
             wisski_store_getObj()->wisski_ARCAdapter_getStore()->insert($triples, wisski_store_getObj()->wisski_ARCAdapter_graphName(), FALSE);
             
