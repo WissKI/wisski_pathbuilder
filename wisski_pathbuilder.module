@@ -505,186 +505,138 @@ function theme_wisski_pathbuilder_dragtable_old($element) {
 }
 
 function theme_wisski_pathbuilder_dragtable($element) {
-  //drupal_set_message("Hallo drag table");
-  //drupal_set_message(htmlentities(serialize($element)));
-  //foreach($element as $key => $value) {
-    //drupal_set_message("my key is: " . $key);
-    //drupal_set_message("my value is: " . serialize($value));
-  //}
   
-  //drupal_set_message("my prefix is: " . serialize($element['#prefix']));
-
-//  return drupal_render($element);
-
   $table_rows = array();
   $remaining = array();
   
-  //drupal_set_message(serialize($element['#children']));
-
-/*  
-  if(is_array($element)) {
-    foreach($element as $key => $value) {
-      $table_row = array();
-      if(is_array($value) && isset($value['#type'])) {
-        //drupal_set_message(serialize($value));
-        if($value['#type'] == "weight") {
-          continue; // weights are added with their fields below
-        } else if($value['#type'] == "hidden") {
-          // hidden goes into the remaining parts
-          $remaining .= drupal_render($value);
-        } else {
-          // anything else - get it here!
-          drupal_set_message(serialize($value));
-          $table_row[] = drupal_render($value);
-          $table_row[] = drupal_render($element['weight_' . $key]);
-          $table_rows[] = array('data' => $table_row, 'class' => 'draggable');
-        }
-      }
-    }
-  }
-  */
-
-//  drupal_set_message("a entity: ");
-  //drupal_set_message(htmlentities($element['#children']) . "eof!", "error");
-
   $groupmode = false;
 
-  //$doc = new DOMDocument();
-  //$doc->loadHTML(htmlentities($element['#children']) );
-
-  //foreach ($doc->childNodes as $item)
-  
-  //$xml = simplexml_load_string('<document>' . $element['#children'] . '</document>');
-
-  //if($xml)
-  //  drupal_set_message("xml: " . serialize($xml->fieldset->asXML()));
-
-/*
-  foreach($xml->children() as $el => $val) {
-    drupal_set_message("el: " . $el . " and val: " . $val);
-  }
-*/
-
-/*
-  foreach($element as $el => $val) {
-    drupal_set_message("el: " . $el . " and val: " . htmlentities($val));
-  }
-*/
 //  mb_internal_encoding("UTF-8");
-  $xml = simplexml_load_string('<document>' . $element['#children'] . '</document>');
-  $remaining = $element['#children'];
 
-//  drupal_set_message(htmlentities($xml->asXML()));
+  // new: using dom instead of simplexml for better html output
+  $doc = new DOMDocument();
+  
+  $doc->loadHTML('<meta http-equiv="content-type" content="text/html; charset=utf-8">' . $element['#children']);
   
   $weight = array();
   $data = array();
   $unduplbutton = array();
   $clsbutton = array();
 
+  // new: using xpath
+  $xpath = new DOMXPath($doc);
+  #drupal_set_message(htmlentities($doc->saveHTML()));
+  
+  $html = $xpath->query('//html/body/node()');      
+
   // is it a ontotext -> fields? otherwise its a group
   // get the input fields and weight fields
   if(strpos($element['#prefix'], 'wisski_pathbuilder_ontotext_wrapper_') !== FALSE) {
-    // always count from behind because otherwise the array is reduced in the front
-    for($i = count($xml->div)-1; $i>=0; $i--) {
-      $divxml = $xml->div[$i]->asXML();
-
-      if(strpos($divxml, '-weight-') !== FALSE) {
-        array_unshift($weight, $divxml);//$xml->div[$i]->select->asXML();        
-      } else
-        array_unshift($data, $divxml);
-      
-      unset($xml->div[$i]);
-      
-    }
     
- //   drupal_set_message(serialize($data));
-  
-    for($i = count($xml->input)-1; $i>=0; $i--) {
-      $buttonxml = $xml->input[$i]->asXML();
-
-      if(strpos($buttonxml, '-cls-button-') !== FALSE) {
-        array_unshift($clsbutton, $buttonxml);
-      
-        unset($xml->input[$i]);
-      } else if(strpos($buttonxml, '-undupl-button-') !== FALSE) {
-        array_unshift($unduplbutton, $buttonxml);
-
-        unset($xml->input[$i]);        
-      }
-    }
-
-    for($i = count($xml->button)-1; $i>=0; $i--) {
-      $buttonxml = $xml->button[$i]->asXML();
-             
-      if(strpos($buttonxml, '-cls-button-') !== FALSE) {
-        array_unshift($clsbutton, $buttonxml);
-                            
-        unset($xml->button[$i]);
-      } else if(strpos($buttonxml, '-undupl-button-') !== FALSE) {
-        array_unshift($unduplbutton, $buttonxml);
-                                                  
-        unset($xml->button[$i]);
-      }
-      
-
-    }
-
+    // the rest which we couldn't work with    
     $remaining = "";
     
-    foreach($xml as $sub) {
-      $remaining .= $sub->asXML();
+    // go through everything in this code
+    foreach($html as $child) {
+      
+      // if it is a div, get it
+      if($child->nodeName == "div") {
+        $attributes = $child->getAttribute('id');
+        
+        // it might be a weight or data
+        if(strpos($attributes, '-weight-') !== FALSE) {
+          $weight[] = $child->ownerDocument->saveHTML($child);
+        } else {
+          $data[] = $child->ownerDocument->saveHTML($child);
+        }
+      }
+      
+      // input or ...
+      else if($child->nodeName == "input") {
+        $attributes = $child->getAttribute('id');
+        
+        if(strpos($attributes, '-cls-button-') !== FALSE) {
+          $clsbutton[] = $child->ownerDocument->saveHTML($child);
+        } else if(strpos($attributes, '-undupl-button-') !== FALSE) {
+          $unduplbutton[] = $child->ownerDocument->saveHTML($child);
+        }
+      }
+      
+      // buttons :)
+      else if($child->nodeName == "button") {
+        $attributes = $child->getAttribute('id');
+        
+        if(strpos($attributes, '-cls-button-') !== FALSE) {
+          $clsbutton[] = $child->ownerDocument->saveHTML($child);
+        } else if(strpos($attributes, '-undupl-button-') !== FALSE) {
+          $unduplbutton[] = $child->ownerDocument->saveHTML($child);
+        }
+      }
+      // anything else
+      else {
+        $remaining .= $child->ownerDocument->saveHTML($child);
+      }
+      
     }
-    
+        
   } else if(strpos($element['#prefix'], 'wisski_pathbuilder_ontogroup_wrapper_') !== FALSE) {
-    $groupmode = true;
-
-    for($i = count($xml->fieldset)-1; $i>=0; $i--) {
-      $fieldsetxml = $xml->fieldset[$i]->asXML();
-      array_unshift($data, $fieldsetxml);
-
-      unset($xml->fieldset[$i]);
-    }
-    
-    for($i = count($xml->div)-1; $i>=0; $i--) {
-      $divxml = $xml->div[$i]->asXML();
-
-      if(strpos($divxml, '-weight-') !== FALSE) {
-        array_unshift($weight, $divxml);
-        unset($xml->div[$i]);
-      }
-
-    }
-      
-    for($i = count($xml->input)-1; $i>=0; $i--) {
-      $buttonxml = $xml->input[$i]->asXML();
-
-      if(strpos($buttonxml, '-cls-button-') !== FALSE) {
-        array_unshift($clsbutton, $buttonxml);
-      
-        unset($xml->input[$i]);
-      } else if(strpos($buttonxml, '-undupl-button-') !== FALSE) {
-        array_unshift($unduplbutton, $buttonxml);
-
-        unset($xml->input[$i]);        
-      }
-      
-
-    }
-    
+   
+    // the rest which we couldn't work with    
     $remaining = "";
     
-    foreach($xml as $sub) {
-      $remaining .= $sub->asXML();
+    $groupmode = true;
+    
+    // go through everything in this code
+    foreach($html as $child) {
+      
+      // if it is a fieldset, get it
+      
+      if($child->nodeName == "fieldset") {
+        $data[] = $child->ownerDocument->saveHTML($child);
+      }
+      
+      // if it is a div, get it
+      else if($child->nodeName == "div") {
+        $attributes = $child->getAttribute('id');
+        
+        // it may only be a weight in this case
+        if(strpos($attributes, '-weight-') !== FALSE) {
+          $weight[] = $child->ownerDocument->saveHTML($child);
+        }
+      }
+      
+      // input or ...
+      else if($child->nodeName == "input") {
+        $attributes = $child->getAttribute('id');
+        
+        if(strpos($attributes, '-cls-button-') !== FALSE) {
+          $clsbutton[] = $child->ownerDocument->saveHTML($child);
+        } else if(strpos($attributes, '-undupl-button-') !== FALSE) {
+          $unduplbutton[] = $child->ownerDocument->saveHTML($child);
+        }
+      }
+      
+      // buttons :)
+      else if($child->nodeName == "button") {
+        $attributes = $child->getAttribute('id');
+        
+        if(strpos($attributes, '-cls-button-') !== FALSE) {
+          $clsbutton[] = $child->ownerDocument->saveHTML($child);
+        } else if(strpos($attributes, '-undupl-button-') !== FALSE) {
+          $unduplbutton[] = $child->ownerDocument->saveHTML($child);
+        }
+      }
+      // anything else
+      else {
+        $remaining .= $child->ownerDocument->saveHTML($child);
+      }
+      
     }
-    
-    
-    
+       
   } else {
     drupal_set_message("this may not happen!", 'error');
   } 
     
-  //drupal_set_message("remaining is: " . serialize($remaining));
-  
   foreach($data as $key => $value) {
     $table_row = array();
     
@@ -697,30 +649,10 @@ function theme_wisski_pathbuilder_dragtable($element) {
       $table_row[] = $clsbutton[$key];
     else
       $table_row[] = array();
-      
-  //  drupal_set_message("table row: " . htmlentities($table_row[1]));
-  
-  //  drupal_set_message("tr data: " . count($table_row));
-      
+        
     $table_rows[] = array('data' => $table_row, 'class' => 'draggable');
   }
   
-
-  /*
-  drupal_set_message(serialize(count($table_rows)));
-  if(count($table_rows) > 1) {
-    drupal_set_message(serialize($table_rows));
-  }
-  */
-    
-  /*
-  if(is_array($element)) {
-    $table_rows[] = array('data' => $element['#children'], 'class' => 'draggable');
-  }
-  */
-  
-  //drupal_set_message(serialize($table_rows));
-
 
   $header = array('Field', 'Weight', 'Unduplicate', 'Clear');
 
