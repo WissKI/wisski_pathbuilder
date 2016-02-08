@@ -1664,8 +1664,7 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
 
       // it is a true group
       if($row['is_group'] == 1) {
-        
-        
+                
         if(empty($path_mapping[$v])) { // there was nothing before
           $got_triples = array_merge($got_triples, wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer[$v], $row['id'], $paths[$v]['children'], $condition . $groupcondition, $ov_pointer[$v], $op_pointer[$v]['children'], $main_subject, empty($paths[$v]['path']) ? $parentpath : $paths[$v]['path'], $current_parent_array));
 
@@ -1679,8 +1678,10 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
                 $condition = "FILTER ( ?x0 = <" . $main_subject . ">)";
             }
             $data = wisski_pathbuilder_get_group_samepart_data($groupid, $main_subject);
-
-            $paths[$v]['path'] = $data;
+            
+            if(empty($paths[$v]['path']) || count($paths[$v]['path']) < count($data))
+              $paths[$v]['path'] = $data;
+            $path_mapping[$v] = $v;
 
 #            $groupcondition .= ('. FILTER ( ?x' . floor(count($data)/2) . ' = <' . $data['x' . floor(count($data)/2)] . '> ) ');
           }
