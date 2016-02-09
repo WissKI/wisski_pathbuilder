@@ -1624,11 +1624,11 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
       $weightresult = db_query("SELECT value, title FROM {wisski_weight} WHERE value = '%s' AND title = '" . $title . "'", mysql_real_escape_string($v));
       
       $row = db_fetch_array($weightresult);
-      
+
       // there was nothing before... just insert
       if(empty($row)) {
         db_query("INSERT INTO {wisski_weight} (weight, title, field_id, value) VALUES ($weight, '" . $title . "', '%s', '" . mysql_real_escape_string($v) . "')", serialize($current_parent_array));
-      } else if($row['value'] == mysql_real_escape_string($v) && $row['title'] == $title) {
+      } else if($row['value'] == mysql_real_escape_string($v) && $row['title'] == $title && $row['weight'] == $weight) {
         // nothing changed...
       } else {
         // in reality you would usually want to do an update. However we don't do
@@ -1664,7 +1664,7 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
 
       // it is a true group
       if($row['is_group'] == 1) {
-                
+        
         if(empty($path_mapping[$v])) { // there was nothing before
           $got_triples = array_merge($got_triples, wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer[$v], $row['id'], $paths[$v]['children'], $condition . $groupcondition, $ov_pointer[$v], $op_pointer[$v]['children'], $main_subject, empty($paths[$v]['path']) ? $parentpath : $paths[$v]['path'], $current_parent_array));
 
