@@ -1664,7 +1664,7 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
 
       // it is a true group
       if($row['is_group'] == 1) {
-        
+
         if(empty($path_mapping[$v])) { // there was nothing before
           $got_triples = array_merge($got_triples, wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer[$v], $row['id'], $paths[$v]['children'], $condition . $groupcondition, $ov_pointer[$v], $op_pointer[$v]['children'], $main_subject, empty($paths[$v]['path']) ? $parentpath : $paths[$v]['path'], $current_parent_array));
 
@@ -1897,7 +1897,7 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
               $auth_key = str_replace('_', '_auth_data_', $key);
             else
               $auth_key = 'auth_data_' . $key; 
-
+            
             // d.h. die Gruppe gabs schon
             if(!empty($paths[$v]['path'])) {
       
@@ -1956,12 +1956,16 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
               } else { // Keine Hauptgruppe?
             
                 if(!empty($main_subject)) {
-
-                  if($parentpath)
+                                    
+                  $tmp_pp = wisski_pathbuilder_get_group_samepart_data($my_group['group_id'], $main_subject);
+                  
+                  // this is a hack because I don't really know why this is here. But Probably there is some reason.
+                  // however typically we should be able to just use the samepart_data.
+                  if($parentpath && count($parentpath) >= count($tmp_pp) )
                     $data = $parentpath;
                   else
-                    $data = wisski_pathbuilder_get_group_samepart_data($my_group['group_id'], $main_subject);
-                    
+                    $data = $tmp_pp;
+                                        
                   list($indiv, $auth_triples, $x) = wisski_pathbuilder_check_auth_triples($auth_key, $value, $authinfo, $main_subject);
 
                   if (empty($indiv)) {
