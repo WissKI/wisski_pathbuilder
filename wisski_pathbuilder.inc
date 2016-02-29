@@ -4727,7 +4727,7 @@ function _wisski_pathbuilder_add_groups_to_menu() {
     $item['mlid'] = isset($oldlinks[$arr['id']]['mlid']) ? $oldlinks[$arr['id']]['mlid'] : NULL;
     $item['plid'] = isset($oldlinks[$arr['id']]['plid']) ? $oldlinks[$arr['id']]['plid'] : $mlidIndividual;
 
-    $id = menu_link_save(&$item);       
+    $id = menu_link_save($item);       
     $saveIDs[$id] = $arr['id'];
   }
   // save it
