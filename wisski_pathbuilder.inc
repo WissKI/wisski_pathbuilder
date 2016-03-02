@@ -1408,7 +1408,7 @@ function wisski_pathbuilder_get_group_samepart_data($groupid, $subjIn = NULL) {
 
 function wisski_pathbuilder_get_form_state($form){
   $values = array();
-  _wisski_pathbuilder_form_get_values($form, &$values);
+  _wisski_pathbuilder_form_get_values($form, $values);
   
 //  drupal_set_message(serialize($values));
   $form_state = array();
@@ -1424,7 +1424,7 @@ function _wisski_pathbuilder_form_get_values($element, &$values) {
         $values[$key] = $element[$key]['#default_value'];
       } else {
       // Recurse through all children elements.
-        _wisski_pathbuilder_form_get_values($element[$key], &$values[$key]);
+        _wisski_pathbuilder_form_get_values($element[$key], $values[$key]);
       }
     }
   }
