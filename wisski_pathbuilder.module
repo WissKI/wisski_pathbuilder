@@ -505,7 +505,7 @@ function theme_wisski_pathbuilder_dragtable_old($element) {
 }
 
 function theme_wisski_pathbuilder_dragtable($element) {
-  
+
   $table_rows = array();
   $remaining = array();
   
@@ -525,20 +525,19 @@ function theme_wisski_pathbuilder_dragtable($element) {
 
   // new: using xpath
   $xpath = new DOMXPath($doc);
-  #drupal_set_message(htmlentities($doc->saveHTML()));
   
   $html = $xpath->query('//html/body/node()');      
+
+  // the rest which we could not process...
+  $remaining = "";
 
   // is it a ontotext -> fields? otherwise its a group
   // get the input fields and weight fields
   if(strpos($element['#prefix'], 'wisski_pathbuilder_ontotext_wrapper_') !== FALSE) {
-    
-    // the rest which we couldn't work with    
-    $remaining = "";
-    
+        
     // go through everything in this code
     foreach($html as $child) {
-      
+
       // if it is a div, get it
       if($child->nodeName == "div") {
         $attributes = $child->getAttribute('id');
@@ -559,6 +558,8 @@ function theme_wisski_pathbuilder_dragtable($element) {
           $clsbutton[] = $child->ownerDocument->saveHTML($child);
         } else if(strpos($attributes, '-undupl-button-') !== FALSE) {
           $unduplbutton[] = $child->ownerDocument->saveHTML($child);
+        } else { // input hidden or something
+          $remaining .= $child->ownerDocument->saveHTML($child);
         }
       }
       
@@ -570,6 +571,8 @@ function theme_wisski_pathbuilder_dragtable($element) {
           $clsbutton[] = $child->ownerDocument->saveHTML($child);
         } else if(strpos($attributes, '-undupl-button-') !== FALSE) {
           $unduplbutton[] = $child->ownerDocument->saveHTML($child);
+        } else { // I don't know what
+          $remaining .= $child->ownerDocument->saveHTML($child);
         }
       }
       // anything else
@@ -580,10 +583,7 @@ function theme_wisski_pathbuilder_dragtable($element) {
     }
         
   } else if(strpos($element['#prefix'], 'wisski_pathbuilder_ontogroup_wrapper_') !== FALSE) {
-   
-    // the rest which we couldn't work with    
-    $remaining = "";
-    
+       
     $groupmode = true;
     
     // go through everything in this code
@@ -613,6 +613,8 @@ function theme_wisski_pathbuilder_dragtable($element) {
           $clsbutton[] = $child->ownerDocument->saveHTML($child);
         } else if(strpos($attributes, '-undupl-button-') !== FALSE) {
           $unduplbutton[] = $child->ownerDocument->saveHTML($child);
+        } else { // I don't know what
+          $remaining .= $child->ownerDocument->saveHTML($child);
         }
       }
       
@@ -624,6 +626,8 @@ function theme_wisski_pathbuilder_dragtable($element) {
           $clsbutton[] = $child->ownerDocument->saveHTML($child);
         } else if(strpos($attributes, '-undupl-button-') !== FALSE) {
           $unduplbutton[] = $child->ownerDocument->saveHTML($child);
+        } else { // I don't know what
+          $remaining .= $child->ownerDocument->saveHTML($child);
         }
       }
       // anything else
