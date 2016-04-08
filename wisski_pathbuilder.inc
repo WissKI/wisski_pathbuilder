@@ -1188,11 +1188,19 @@ function wisski_pathbuilder_getGroupIDForIndividual($ind, $type = 1) {
     return;
   }
 
-  foreach($results as $result) {
-    $id = wisski_pathbuilder_getGroupIDForConcept($result['x'], $type);
-    if($id > 0)
-      return $id;
+  $lastseen = variable_get("wisski_pathbuilder_last_seen_templateids", array());
+
+  $earliest = 0;
+    foreach($results as $result) {
+      if($earliest < $lastseen[$result['x']] || !isset($id)) {
+        $earliest = $lastseen[$result['x']];
+        $id = wisski_pathbuilder_getGroupIDForConcept($result['x'], $type);
+     }                       
   }
+  
+  if(isset($id))
+    return $id;
+                           
   return -1;
 }
 
