@@ -3097,7 +3097,7 @@ function wisski_pathbuilder_build_group_submit($form, &$form_state) {
   $paths = array();
 
   $main_subj_out = FALSE;
-  $triples = wisski_pathbuilder_recursive_edit_submit($form, $form_state['values'], $groupid, $paths, array(), array(), array(), array(), array(), $main_subj_out);
+  $triples = wisski_pathbuilder_recursive_edit_submit($form, $form_state['values'], $groupid, $paths, array(), array(), array(), "", array(), $main_subj_out);
   
   
 //  $triple = $triples[0];
