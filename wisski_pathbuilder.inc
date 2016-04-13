@@ -1806,8 +1806,9 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
               continue;
 
             }
-
-            $sparql = wisski_pathbuilder_get_sparql($row['id'], $condition, TRUE, 0, FALSE);
+            // the last parameter should be true
+            // in case we have to delete unions...
+            $sparql = wisski_pathbuilder_get_sparql($row['id'], $condition, TRUE, 0, TRUE);
             $data = wisski_pathbuilder_get_group_samepart_data($groupid);
           //drupal_set_message("data is: " . serialize($data));
           //drupal_set_message("groupid : " . serialize($groupid));
