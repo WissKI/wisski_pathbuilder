@@ -1337,7 +1337,7 @@ function wisski_pathbuilder_template_edit($form_state, $node) {
  * @return an array of data with x0, y0, x1 ... xn set to instances.
  * @author Mark Fichtner
  */
-function wisski_pathbuilder_get_group_samepart_data($groupid, $subjIn = NULL) {
+function wisski_pathbuilder_get_group_samepart_data($groupid, $subjIn = NULL, $subcond = "") {
   
   if($groupid == 0) {
     drupal_set_message(t("No Data found, error."),'error');
@@ -1382,7 +1382,7 @@ function wisski_pathbuilder_get_group_samepart_data($groupid, $subjIn = NULL) {
     
   $sparql = "";
 
-  $sparql = wisski_pathbuilder_get_sparql($groupid, $condition);
+  $sparql = wisski_pathbuilder_get_sparql($groupid, $subcond . $condition);
 
   $sprows = wisski_store_getObj()->wisski_ARCAdapter_getStore()->query($sparql, 'rows');
 
@@ -1685,7 +1685,16 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
               if(empty($condition))
                 $condition = "FILTER ( ?x0 = <" . $main_subject . ">)";
             }
-            $data = wisski_pathbuilder_get_group_samepart_data($groupid, $main_subject);
+            
+            $pp = empty($paths[$v]['path']) ? $parentpath : $paths[$v]['path'];
+             
+            $pp_cond = "";           
+            if(!empty($pp))
+              $pp_cond = "FILTER ( ?x" . floor(count($pp)/2) . " = <" . $pp[("x" . floor(count($pp)/2))] . "> ) . ";
+
+            $data = wisski_pathbuilder_get_group_samepart_data($groupid, $main_subject, $pp_cond);
+            
+#            dpm($data);
             
             if(empty($paths[$v]['path']) || count($paths[$v]['path']) < count($data))
               $paths[$v]['path'] = $data;
@@ -1965,8 +1974,15 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
               } else { // Keine Hauptgruppe?
             
                 if(!empty($main_subject)) {
+                  
+                  $pp = empty($paths[$v]['path']) ? $parentpath : $paths[$v]['path'];
+             
+                  $pp_cond = "";           
+                  if(!empty($pp))
+                    $pp_cond = "FILTER ( ?x" . floor(count($pp)/2) . " = <" . $pp[("x" . floor(count($pp)/2))] . "> ) . ";
+
                                     
-                  $tmp_pp = wisski_pathbuilder_get_group_samepart_data($my_group['group_id'], $main_subject);
+                  $tmp_pp = wisski_pathbuilder_get_group_samepart_data($my_group['group_id'], $main_subject, $pp_cond);
                   
                   // this is a hack because I don't really know why this is here. But Probably there is some reason.
                   // however typically we should be able to just use the samepart_data.
