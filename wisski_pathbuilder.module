@@ -504,6 +504,22 @@ function theme_wisski_pathbuilder_dragtable_old($element) {
   return $output;
 }
 
+
+/** This is a helper function to work around the 
+ problem that 1st param of saveHTML() is introduced in
+ php 5.3.6 and thus does not work in older versions
+ @author Martin Scholz
+*/
+function _wisski_pathbuilder_save_xml($node) {
+  $doc = $node->ownerDocument;
+  if (version_compare(phpversion(), "5.3.6", "<")) {
+    return $doc->saveXML($node, LIBXML_NOEMPTYTAG);
+  } else {
+    return $doc->saveHTML($node);
+  }
+}
+
+
 function theme_wisski_pathbuilder_dragtable($element) {
 
   $table_rows = array();
@@ -544,9 +560,9 @@ function theme_wisski_pathbuilder_dragtable($element) {
         
         // it might be a weight or data
         if(strpos($attributes, '-weight-') !== FALSE) {
-          $weight[] = $child->ownerDocument->saveHTML($child);
+          $weight[] = _wisski_pathbuilder_save_xml($child);
         } else {
-          $data[] = $child->ownerDocument->saveHTML($child);
+          $data[] = _wisski_pathbuilder_save_xml($child);
         }
       }
       
@@ -555,11 +571,11 @@ function theme_wisski_pathbuilder_dragtable($element) {
         $attributes = $child->getAttribute('id');
         
         if(strpos($attributes, '-cls-button-') !== FALSE) {
-          $clsbutton[] = $child->ownerDocument->saveHTML($child);
+          $clsbutton[] = _wisski_pathbuilder_save_xml($child);
         } else if(strpos($attributes, '-undupl-button-') !== FALSE) {
-          $unduplbutton[] = $child->ownerDocument->saveHTML($child);
+          $unduplbutton[] = _wisski_pathbuilder_save_xml($child);
         } else { // input hidden or something
-          $remaining .= $child->ownerDocument->saveHTML($child);
+          $remaining .= _wisski_pathbuilder_save_xml($child);
         }
       }
       
@@ -568,16 +584,16 @@ function theme_wisski_pathbuilder_dragtable($element) {
         $attributes = $child->getAttribute('id');
         
         if(strpos($attributes, '-cls-button-') !== FALSE) {
-          $clsbutton[] = $child->ownerDocument->saveHTML($child);
+          $clsbutton[] = _wisski_pathbuilder_save_xml($child);
         } else if(strpos($attributes, '-undupl-button-') !== FALSE) {
-          $unduplbutton[] = $child->ownerDocument->saveHTML($child);
+          $unduplbutton[] = _wisski_pathbuilder_save_xml($child);
         } else { // I don't know what
-          $remaining .= $child->ownerDocument->saveHTML($child);
+          $remaining .= _wisski_pathbuilder_save_xml($child);
         }
       }
       // anything else
       else {
-        $remaining .= $child->ownerDocument->saveHTML($child);
+        $remaining .= _wisski_pathbuilder_save_xml($child);
       }
       
     }
@@ -592,7 +608,7 @@ function theme_wisski_pathbuilder_dragtable($element) {
       // if it is a fieldset, get it
       
       if($child->nodeName == "fieldset") {
-        $data[] = $child->ownerDocument->saveHTML($child);
+        $data[] = _wisski_pathbuilder_save_xml($child);
       }
       
       // if it is a div, get it
@@ -601,7 +617,7 @@ function theme_wisski_pathbuilder_dragtable($element) {
         
         // it may only be a weight in this case
         if(strpos($attributes, '-weight-') !== FALSE) {
-          $weight[] = $child->ownerDocument->saveHTML($child);
+          $weight[] = _wisski_pathbuilder_save_xml($child);
         }
       }
       
@@ -610,11 +626,11 @@ function theme_wisski_pathbuilder_dragtable($element) {
         $attributes = $child->getAttribute('id');
         
         if(strpos($attributes, '-cls-button-') !== FALSE) {
-          $clsbutton[] = $child->ownerDocument->saveHTML($child);
+          $clsbutton[] = _wisski_pathbuilder_save_xml($child);
         } else if(strpos($attributes, '-undupl-button-') !== FALSE) {
-          $unduplbutton[] = $child->ownerDocument->saveHTML($child);
+          $unduplbutton[] = _wisski_pathbuilder_save_xml($child);
         } else { // I don't know what
-          $remaining .= $child->ownerDocument->saveHTML($child);
+          $remaining .= _wisski_pathbuilder_save_xml($child);
         }
       }
       
@@ -623,16 +639,16 @@ function theme_wisski_pathbuilder_dragtable($element) {
         $attributes = $child->getAttribute('id');
         
         if(strpos($attributes, '-cls-button-') !== FALSE) {
-          $clsbutton[] = $child->ownerDocument->saveHTML($child);
+          $clsbutton[] = _wisski_pathbuilder_save_xml($child);
         } else if(strpos($attributes, '-undupl-button-') !== FALSE) {
-          $unduplbutton[] = $child->ownerDocument->saveHTML($child);
+          $unduplbutton[] = _wisski_pathbuilder_save_xml($child);
         } else { // I don't know what
-          $remaining .= $child->ownerDocument->saveHTML($child);
+          $remaining .= _wisski_pathbuilder_save_xml($child);
         }
       }
       // anything else
       else {
-        $remaining .= $child->ownerDocument->saveHTML($child);
+        $remaining .= _wisski_pathbuilder_save_xml($child);
       }
       
     }
