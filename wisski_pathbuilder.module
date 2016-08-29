@@ -1076,7 +1076,11 @@ function wisski_pathbuilder_rescue_values($form, &$form_state) {
 
 function wisski_pathbuilder_book_store(&$node) {
 
-  $book_node = $node;
+  // We need to clone the node object, simple = does not produce copy of $node!
+  // The copy is important as we change the node title which holds the URI
+  // This function is called on hook_nodeapi() calls. hooks called after this one
+  // would get the wrong title if we don't clone!
+  $book_node = clone $node;
   module_load_include('inc', 'wisski_pathbuilder');
   $inst = wisski_store_getObj()->wisski_ARCAdapter_delNamespace($node->title);
   if (!$inst) return;
