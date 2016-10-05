@@ -18,7 +18,7 @@ function wisski_pathbuilder_node_form($node, $form_state) {
  * @author Mark Fichtner
  */
 function wisski_pathbuilder_getPathbuilderTrees() {
-  return array(2 => "Internal display", 3 => "Import", 5 => "Export", 7 => "Find");
+  return array(2 => "Internal display", 3 => "Import", 5 => "Export", 7 => "Find", 11 => "Excel");
 }
 
 /**
@@ -5107,21 +5107,18 @@ function wisski_pathbuilder_edit_item(&$form_state, $type, $item, $menu) {
   );
 
   $types = array();
-  if(!($data['type'] % 2))
-    $types[] = 2;
-  if(!($data['type'] % 3))
-    $types[] = 3;
-  if(!($data['type'] % 5))
-    $types[] = 5;
-  if(!($data['type'] % 7))
-    $types[] = 7;
+  $systypes = wisski_pathbuilder_getPathbuilderTrees(); 
+  
+  foreach ($systypes as $key => $label) {
+    if(!($data['type'] % $key))
+      $types[] = $key;
+  }
 
   $form['item']['type'] = array(
       '#default_value' => $types,
 
       '#type' => 'checkboxes',
-      '#options' => array(2 => "Internal display", 3 => "Import", 
-        5 => "Export", 7 => "Find"),
+      '#options' => $systypes,
       '#title' => 'This path or group is used for',
       );
 
