@@ -1784,7 +1784,7 @@ function wisski_pathbuilder_recursive_edit_submit($form, $fs_pointer, $groupid, 
               if($local_value == $values[$key])
                 continue;
             
-              $sparql = wisski_pathbuilder_get_sparql($row['id'], $condition, TRUE, 0, FALSE);
+              $sparql = wisski_pathbuilder_get_sparql($row['id'], $condition, TRUE, 0, TRUE);
               $data = wisski_pathbuilder_get_group_samepart_data($groupid);
       
               if($row['disamb'] > 0) 
