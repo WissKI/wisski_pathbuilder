@@ -4547,13 +4547,17 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
        
           $elements = "";
           $result = check_plain($result);
-          $newresult = check_markup($result, 1);
+          // kill $ in the url - it is forbidden anyway...
+          $newresult = str_replace('$', '%24', $result);
+
+          $newresult = check_markup($newresult, 1);
           $newresult = preg_replace('/\<p\>(.*)\<\/p\>/s', '$1', trim($newresult));
           
           // check if it is an url
           if(trim($newresult) !== trim($result)) {
             // change all spaces in urls to %20
             $result = str_replace(" ", "%20", $result);
+            $result = str_replace('$', '%24', $result);
             // recheck
             $result = check_markup($result, 1);
             $result = preg_replace('/\<p\>(.*)\<\/p\>/s', '$1', $result);
