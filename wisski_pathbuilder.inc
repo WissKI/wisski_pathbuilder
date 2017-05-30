@@ -4555,9 +4555,12 @@ function _wisski_pathbuilder_recursive_build_group($form_state, $parentID, &$pat
           
           // check if it is an url
           if(trim($newresult) !== trim($result)) {
-            // change all spaces in urls to %20
-            $result = str_replace(" ", "%20", $result);
-            $result = str_replace('$', '%24', $result);
+            if($arr['fieldtype'] != 'textarea') {
+              // change all spaces in urls to %20
+              // but do this only in textfields and so on
+              $result = str_replace(" ", "%20", $result);
+              $result = str_replace('$', '%24', $result);
+            }
             // recheck
             $result = check_markup($result, 1);
             $result = preg_replace('/\<p\>(.*)\<\/p\>/s', '$1', $result);
